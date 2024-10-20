@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="pl" ondblclick="document.querySelector('html').requestFullscreen()">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> primoria ferox </title>
+    <style>
+    html{
+      position:fixed; width:100%; height:100%;
+    }
+    *{
+      user-select: none;
+    }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background:#000000;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top:50vh;
+            left:50vw;
+           transform:translate(-50%,-50%);
+            background-color: #87CEEB; /* Niebo */
+            image-rendering: pixelated; /* Wyłącz antyaliasing */
+        }
+        .controls {
+            position: absolute;
+            left: 10px;
+            bottom: 10px;
+            width: 100px;
+            height: 100px;
+            background-color: rgba(133, 133, 133, 0.5);
+            border-radius: 50%;
+            touch-action: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Zapobiega wychodzeniu thumba poza joystick */
+        }
+        .thumb {
+            width: 40px; margin: -20px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            position: absolute;
+            pointer-events: none; /* Ignorowanie zdarzeń dotykowych dla thumb */
+            transition: left 0.1s, top 0.1s; /* Płynne przejście przy ruchu */
+        }
+        .inventory {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+
+<div style="position: absolute; top:0; left:0; z-index: 9999999999999999999999999999999999999999; background: black; color: white;" id="ggsvbdnfnnfnnxkrgjgmvmfjrhf">
+</div><script>function scanvarible(data){document.getElementById('ggsvbdnfnnfnnxkrgjgmvmfjrhf').innerText=data }</script>
+
+
+
+
+<canvas id="gameCanvas" width="300" height="300"></canvas>
+
+<div class="controls" id="joystick">
+    <div class="thumb" id="thumb" style="display: none;"></div>
+</div>
+
+<div class="inventory">
+
+    <div id="inventoryItem">Ekwipunek</div>
+</div>
+
+<script>
+
+var playerX=0
+var playerY=0
+const blockSize = 32;
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false; // Wyłącz antyaliasing
+const inventory = {
+    items: [], // Tablica przechowująca przedmioty
+    maxSlots: 4, // Maksymalna liczba slotów w ekwipunku
+};
+const waterBuilder = ["stone_floor", "fiber_floor"];
+
+function isPlayerInWater() {
+    let isInWater = false;
+
+    // Najpierw sprawdzamy, czy gracz jest w bloku wody
+    for (const block of renderedBlocks) {
+        const playerCenterX = player.x + player.width / 2;
+        const playerCenterY = player.y + player.height / 2;
+
+        if (
+            playerCenterX >= block.x && playerCenterX <= block.x + blockSize &&
+            playerCenterY >= block.y && playerCenterY <= block.y + blockSize
+        ) {
+            if (block.type === 'water') {
+                isInWater = true;
+            }
+            // Jeśli gracz jest na bloku z waterBuilder, zwróć false
+            if (waterBuilder.includes(block.type)) {
+                return false;
+            }
+        }
+    }
+
+    // Jeśli gracz jest na wodzie i nie ma bloków z waterBuilder, zwróć true
+    return isInWater;
+}
+
+let waterspeed = 3;
+let norspeed = 4;
+let playerSpeed = 4;
+let player = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    width: 32,
+    height: 32,
+    speed: 2,
+    currentAnimation: 'staydown', // Domyślna animacja
+    frameIndex: 0, // Indeks klatki
+    frameSpeed: 5, // Szybkość zmiany klatek
+    frameCounter: 0, // Licznik klatek
+    texture: new Image(), // Obraz gracza
+    textures: {
+        staydown: ['./staydown.png'],
+        stayup: ['./stayup.png'],
+        moveup: ['./moveup0.png', './moveup1.png'],
+        stayleft: ['./moveleft0.png'],
+        stayright: ['./moveright0.png'],
+        moveleft: ['./moveleft0.png', './moveleft1.png'],
+        moveright: ['./moveright0.png', './moveright1.png'],
+        
+        movedown: ['./movedown0.png', './movedown1.png'],
+        moveupright: ['./upright0.png','./upright1.png'],
+        moveupleft: ['./upleft0.png','./upleft1.png'],
+        stayupleft: ['./upleft0.png'],
+        stayupright: ['./upright0.png'],
+        
+  
+  inwater_moveleft: ['./swimleft0.png', './swimleft1.png'],
+  inwater_moveright: ['./swimright0.png', './swimright1.png'],
+
+  inwater_movedown: ['./swimdown0.png', './swimdown1.png'],
+  inwater_moveup: ['./swimup0.png', './swimup1.png'],
+  
+
+        
+    },
+        
+};
+
+// Na początku ustaw teksturę na domyślną animację
+player.texture.src = player.textures[player.currentAnimation][0];
+let footstepSound = new Audio('./step1.mp3');
+footstepSound.loop = true; // Ustawienie pętli dla dźwięku
+
+function playFootstepSound() {
+    if (footstepSound.paused) {
+        footstepSound.play();
+    }
+}
+
+function stopFootstepSound() {
+    if (!footstepSound.paused) {
+        footstepSound.pause();
+        footstepSound.currentTime = 0; // Resetowanie dźwięku po zatrzymaniu
+    }
+}
+
+let lastDirection = 'down'; // Domyślny kierunek patrzenia
+
+function updatePlayerAnimation() {
+    const inWater = isPlayerInWater(); // Sprawdzenie, czy gracz jest w wodzie
+
+    if (inWater) {
+        // Animacje dla ruchu w wodzie
+        if (moveRight) {
+            player.currentAnimation = 'inwater_moveright';
+            lastDirection = 'right';
+        } else if (moveLeft) {
+            player.currentAnimation = 'inwater_moveleft';
+            lastDirection = 'left';
+        } else if (moveUp) {
+            player.currentAnimation = 'inwater_moveup';
+            lastDirection = 'up';
+        } else if (moveDown) {
+            player.currentAnimation = 'inwater_movedown';
+            lastDirection = 'down';
+        }
+        playerSpeed = waterspeed;
+    } else {
+        // Standardowe animacje
+        playerSpeed = norspeed;
+        if (moveRight && moveUp) {
+            player.currentAnimation = 'moveupright';
+            lastDirection = 'right-up';
+        } else if (moveLeft && moveUp) {
+            player.currentAnimation = 'moveupleft';
+            lastDirection = 'left-up';
+        } else if (moveRight) {
+            player.currentAnimation = 'moveright';
+            lastDirection = 'right';
+        } else if (moveLeft) {
+            player.currentAnimation = 'moveleft';
+            lastDirection = 'left';
+        } else if (moveUp) {
+            player.currentAnimation = 'moveup';
+            lastDirection = 'up';
+        } else if (moveDown) {
+            player.currentAnimation = 'movedown';
+            lastDirection = 'down';
+        } else {
+            // Zatrzymanie gracza
+            if (player.currentAnimation.includes('move')) {
+  if (player.currentAnimation === 'moveup') player.currentAnimation = 'stayup';
+  if (player.currentAnimation === 'moveleft') player.currentAnimation = 'stayleft';
+  if (player.currentAnimation === 'moveright') player.currentAnimation = 'stayright';
+  if (player.currentAnimation === 'movedown') player.currentAnimation = 'staydown';
+}
+        }
+    }
+if ((moveLeft || moveRight || moveUp || moveDown) && !inWater) {
+  playFootstepSound(); // Graj dźwięk kroków, gdy gracz się porusza
+} else if(moveLeft || moveRight || moveUp || moveDown ){
+stopFootstepSound();
+} else {
+  stopFootstepSound(); // Zatrzymaj dźwięk, gdy gracz stoi
+  
+}
+    // Obsługa animacji klatek
+    player.frameCounter++;
+    if (player.frameCounter >= player.frameSpeed) {
+      player.frameIndex = (player.frameIndex + 1) % player.textures[player.currentAnimation].length;
+      player.frameCounter = 0;
+    }
+
+    // Ustawienie nowej tekstury gracza
+    let newTexture = new Image();
+    newTexture.src = player.textures[player.currentAnimation][player.frameIndex];
+
+    newTexture.onload = function() {
+      player.texture = newTexture;
+    };
+}
+
+
+// Tablica z plikami muzycznymi
+const musicTracks = [
+    "./primoria ferox 1.mp3",
+    "./primoria ferox 3.mp3",
+    "./Primoria Division.mp3",
+    "./new horizons above.mp3"
+];
+
+// Tablica instancji Audio
+const audioInstances = musicTracks.map(track => new Audio(track));
+
+// Zmienna przechowująca referencję do aktualnie odtwarzanego utworu
+let currentTrack = null;
+let randomTrack;
+// Funkcja losująca liczbę całkowitą w zakresie
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Funkcja odtwarzająca losowy utwór
+function playRandomMusic() {
+    const randomIndex = getRandomInt(0, audioInstances.length - 1); // Losowy indeks utworu
+     randomTrack = audioInstances[randomIndex]; // Wybór losowego utworu
+
+    // Jeśli jakiś utwór jest aktualnie odtwarzany, zatrzymujemy go
+    if (currentTrack) {
+        currentTrack.pause();
+        currentTrack.currentTime = 0; // Reset czasu odtwarzania
+    }
+
+    randomTrack.play(); // Odtwarzanie wybranego utworu
+    currentTrack = randomTrack; // Zapisanie referencji do aktualnego utworu
+
+    // Nasłuchujemy, kiedy utwór się zakończy
+    randomTrack.onended = function () {
+        const randomDelay = getRandomInt(1000, 2000); // Losowy czas przerwy między 1000 a 2000 ms
+        setTimeout(playRandomMusic, randomDelay); // Odtwarzamy kolejny utwór po losowej przerwie
+    };
+}
+
+// Start losowego odtwarzania muzyki
+
+onclick = function() {
+  if(!randomTrack){
+    playRandomMusic();
+  }
+}
+
+const textures = {};
+
+// Definicja nazw tekstur i ich ścieżek
+const textureSources = {
+    grass: './grass.png',
+    dirt: './dirt.png',
+    tree0: './tree0.png',
+    tree1: './tree1.png',
+    tree2: './tree2.png',
+    birch0: './birch0.png',
+    birch1: './birch1.png',
+    birch2: './birch2.png',
+    tallgrass: './tallgrass.png',
+    rock: './rock.png',
+    yellow: './yellow.png',
+    dirty_water: './dirty-water.png',
+    water: './water.png',
+    stones: './stones.png',
+    sticks: './sticks.png',
+    briar: './briar.png',
+    kite: './kite.png',
+    nettle: './nettle.png',
+    thistle: './thistle.png',
+    yew0: './yew0.png',
+    yew1: './yew1.png',
+    pine0: './pine0.png',
+    pine1: './pine1.png',
+    pine2: './pine2.png',
+    violet: './violet.png',
+    treebark: './treebark.png',
+    shiny: './shine.png',
+    toadstool: './toadstool.png',
+    fern: './fern.png',
+    blackberry: './blackberry.png',
+    dandelion: './dandelion.png',
+    sand: './sandblock.png',
+    chalcopyrite: './chalcopyrite.png',
+    stone_floor: './stone_floor.png',
+    stone_wall: './stone_wall.png',
+    fiber_floor: './fiber_floor.png',
+    log_wall: './woodblock.png',
+"blackberry-fruit": './blackberry-fruit.png',
+
+    "fiber": "./fiber.png",
+            "bigrock": "./largerock.png",
+            "stone": "./stones.png",
+            "sharpstone": "./sharpstone.png",
+            "stick": "./sticks.png",
+            "longstick": "./longstick.png",
+            "woodboard": "./board.png",
+            "treebark": "./treebark.png",
+            "yew": "./yew-fruit.png",
+            "briar-fruit": "./briar-fruit.png",
+            "resin": "./resin.png",
+         
+"handdrill-kit": "./handdrill.png",
+"fireroll-kit": "./fireroll.png",
+"cordage": "./cordage.png",
+"dowel": "./dowel.png",
+"log": "./tree0.png",
+"stone_axe": "./stone_axe.png",
+"stone_scyte": "./stone_scyte.png",
+"fireplow": "./fireplow.png",
+"birch-powder": "./birch-powder.png",
+torch:"./torch.png",
+extinguished_torch :"./extinguished_torch.png", 
+};
+
+const animatedTextures = {
+    torch: {
+        frames: ['./torch.png', './torch2.png'], // Klatki animacji
+        speed: 0.5  // Czas trwania jednej klatki (w sekundach)
+    }
+};
+
+// Funkcja do ładowania tekstur, w tym animowanych
+function loadTextures() {
+    // Ładowanie statycznych tekstur
+    
+
+    // Ładowanie animowanych tekstur
+    for (const [key, animData] of Object.entries(animatedTextures)) {
+        const frames = animData.frames.map(src => {
+            const img = new Image();
+            img.src = src;
+            return img;
+        });
+        animatedTextures[key] = {
+            frames: frames,
+            speed: animData.speed,
+            currentFrame: 0,
+            lastFrameTime: 0
+        };
+    }
+}
+loadTextures()
+
+// Tworzenie nowych obiektów Image i przypisanie źródeł
+for (const [name, src] of Object.entries(textureSources)) {
+    textures[name] = new Image();
+    textures[name].src = src;
+}
+
+let offsetX = 0;
+let offsetY = 0;
+
+let chunks = {};
+
+// Zmienne ruchu
+let moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
+
+// Generowanie chunków
+// Generowanie chunków
+var worldseed="83455AB5CC2092"//14 cyfrowo/literkowy seed
+let islands = []; // Tablica przechowująca dane o wygenerowanych wyspach
+
+function generateRandomIsland(x, y) {
+  const islandChance = 0.03; // Szansa na wygenerowanie nowej wyspy
+  const minDistance = 3000; // Minimalna odległość, po której mogą zacząć się generować wyspy
+  const distanceFromCenter = Math.sqrt(x ** 2 + y ** 2);
+
+  // Sprawdzamy, czy już istnieje wyspa w pobliżu
+  for (const island of islands) {
+    const distToIslandCenter = Math.sqrt((x - island.x) ** 2 + (y - island.y) ** 2);
+    if (distToIslandCenter <= island.radius) {
+      return true; // Punkt należy do istniejącej wyspy
+    }
+  }
+
+  // Jeśli odległość od centrum przekracza minimalną i mamy losową szansę, tworzymy nową wyspę
+  if (distanceFromCenter > minDistance && Math.random() < islandChance) {
+    const radius = Math.floor(Math.random() * 175) + 50; // Losowy promień od 50 do 225
+    const islandX = x + Math.floor(Math.random() * 500) - 250; // Losowe przesunięcie wyspy
+    const islandY = y + Math.floor(Math.random() * 500) - 250;
+
+    // Zapisujemy wyspę z jej centrum i promieniem
+    islands.push({ x: islandX, y: islandY, radius: radius });
+    return Math.sqrt((x - islandX) ** 2 + (y - islandY) ** 2) <= radius; // Punkt na nowej wyspie
+  }
+
+  return false;
+}
+
+function generateChunk(chunkX, chunkY) {
+  const chunkKey = `${Math.floor(chunkX)},${Math.floor(chunkY)}`;
+  if (chunks[chunkKey]) return;
+
+  const blocks = [];
+  for (let i = 0; i < 1; i++) {
+    for (let j = 0; j < 1; j++) {
+      const blockPosX = chunkX * blockSize + i * blockSize;
+      const blockPosY = chunkY * blockSize + j * blockSize;
+      const distanceFromSpawn = Math.sqrt(blockPosX ** 2 + blockPosY ** 2);
+
+      // Inicjalizacja typu bloku w zależności od odległości
+      let blockType;
+      const isInSpawnArea = Math.abs(chunkX) <= 5 && Math.abs(chunkY) <= 5;
+
+      if (distanceFromSpawn > 1600) {
+        blockType = generateRandomIsland(blockPosX, blockPosY) ? 'grass' : 'water'; // Generowanie wysp
+      } else if (distanceFromSpawn > 1100) {
+        blockType = 'water'; // Woda poza 1600 bloków
+      } else if (distanceFromSpawn > 1030) {
+        blockType = 'sand'; // Piasek między 1000 a 1600 bloków
+      } else {
+        blockType = 'grass'; // Trawa dla obszarów bliżej centrum
+      }
+
+      
+if (blockType === 'dirt' ||blockType === 'sand' || blockType === 'water') {
+  // No trees on dirt or water
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: blockType });
+} else {
+  // Default behavior for grass
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+
+  // Add trees and other flora
+  if (!isInSpawnArea && Math.random() < 0.05) {
+    blocks.push({ x: i * blockSize, y: j * blockSize, type: 'tree0' });
+    blocks.push({ x: i * blockSize, y: (j - 1) * blockSize, type: 'tree1' });
+    blocks.push({ x: i * blockSize, y: (j - 2) * blockSize, type: 'tree2' });
+  }else if (!isInSpawnArea && Math.random() < 0.01) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'birch0' });
+  blocks.push({ x: i * blockSize, y: (j - 1) * blockSize, type: 'birch1' });
+  blocks.push({ x: i * blockSize, y: (j - 2) * blockSize, type: 'birch2' });
+}else if (!isInSpawnArea && Math.random() < 0.05) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'pine0' });
+  blocks.push({ x: i * blockSize, y: (j - 1) * blockSize, type: 'pine1' });
+  blocks.push({ x: i * blockSize, y: (j - 2) * blockSize, type: 'pine2' });
+blocks.push({ x: i * blockSize, y: (j - 3) * blockSize, type: 'pine2' });
+}else if (!isInSpawnArea && Math.random() < 0.02) {
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'rock' });
+            } else if (Math.random() < 0.03) {
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'sticks' });
+            } else if (Math.random() < 0.05) {
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'stones' });
+            } else if (Math.random() < 0.2) {
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'yellow' });
+            } else if (Math.random() < 0.03) {
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'kite' });
+            } else if (Math.random() < 0.01) {
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'briar' });
+            }else if (Math.random() < 0.05) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'nettle' });
+}else if (Math.random() < 0.05) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'thistle' });
+}else if (Math.random() < 0.02) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'violet' });
+}else if (Math.random() < 0.02) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'treebark' });
+} else if (Math.random() < 0.2) {
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+                blocks.push({ x: i * blockSize, y: j * blockSize, type: 'tallgrass' });
+            }else if (Math.random() < 0.01) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'toadstool' });
+} else if (Math.random() < 0.07) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'fern' });
+}else if (Math.random() < 0.03) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'shiny' });
+}else if (Math.random() < 0.005) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'blackberry' });
+}else if (Math.random() < 0.04) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'dandelion' });
+}else if (Math.random() < 0.003) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'chalcopyrite' });
+}else {
+                blocks.push({ x: Math.floor( i * blockSize), y: Math.floor( j * blockSize), type: blockType });
+            }
+        }}
+    }
+    chunks[chunkKey] = blocks;
+}
+
+// Funkcja do dodawania sąsiednich bloków wody
+function addSurroundingWater(blocks, x, y) {
+    const directions = [
+        { dx: blockSize, dy: 0 },   // Prawo
+        { dx: -blockSize, dy: 0 },  // Lewo
+        { dx: 0, dy: blockSize },   // Dół
+        { dx: 0, dy: -blockSize },  // Góra
+    ];
+
+    // Licznik bloków wody
+    let waterCount = 0;
+
+    // Losowo wybieraj kierunki
+    for (const direction of directions) {
+        if (waterCount >= 12) break; // Nie dodawaj więcej niż 8 bloków wody
+
+        // Oblicz nową pozycję
+        const newX = x + direction.dx;
+        const newY = y + direction.dy;
+
+        // Sprawdź, czy w tym miejscu można dodać wodę
+        if (canPlaceWater(blocks, newX, newY)) {
+            blocks.push({ x: newX, y: newY, type: 'water' });
+            waterCount++;
+        }
+    }
+}
+
+// Funkcja do sprawdzania, czy można umieścić wodę w danej pozycji
+function canPlaceWater(blocks, x, y) {
+    // Sprawdź istniejące bloki w danej pozycji
+    for (const block of blocks) {
+        if (block.x === x && block.y === y) {
+            // Jeśli jest inny blok, który nie jest 'grass', nie umieszczaj wody
+            return block.type === 'grass';
+        }
+    }
+    return true; // Można umieścić wodę
+}
+
+function drawTreesBelowPlayer(trees) {
+    trees.forEach(tree => {
+        ctx.drawImage(textures[tree.type], tree.x, tree.y, blockSize, blockSize);
+    });
+}
+
+// Rysowanie drzew nad graczem
+function drawTreesAbovePlayer(trees) {
+    trees.forEach(tree => {
+        ctx.drawImage(textures[tree.type], tree.x, tree.y, blockSize, blockSize);
+    });
+}
+
+
+let renderedBlocks = []; // Przechowywanie bloków widocznych na ekranie
+let nightpower = 0;  // Początkowa wartość (dzień)
+const maxNightpower = 3;  // Maksymalna wartość (pełna noc)
+let dayNightCycleSpeed = 0.0001;  // Prędkość cyklu dnia i nocy (można dostosować)
+let increasing = true;  // Kontroluje, czy nightpower wzrasta (noc) czy maleje (dzień)
+function updateDayNightCycle() {
+    if (increasing) {
+        nightpower += dayNightCycleSpeed;
+        if (nightpower >= maxNightpower) {
+            nightpower = maxNightpower;
+            increasing = false;  // Zacznij zmniejszać (dzień)
+        }
+    } else {
+        nightpower -= dayNightCycleSpeed;
+        if (nightpower <= 0) {
+            nightpower = 0;
+            increasing = true;  // Zacznij zwiększać (noc)
+        }
+    }
+}
+function isNearTorch(blocks, x, y) {
+    const radius = 1 * blockSize;  // Promień w pikselach, w którym szukamy pochodni
+    for (const block of blocks) {
+        if (block.type === 'torch') {
+            const distX = Math.abs(block.x - x);
+            const distY = Math.abs(block.y - y);
+            if (distX <= radius && distY <= radius) {
+                return true;  // Pochodnia jest w pobliżu
+            }
+        }
+    }
+    return false;
+}
+
+let chunkPositions = []; // Dodajemy do przechowywania pozycji chunków
+
+function drawChunks() {
+    const startX = Math.floor(offsetX / blockSize);
+    const startY = Math.floor(offsetY / blockSize);
+    const endX = startX + Math.ceil(canvas.width / blockSize / 1) + 2;
+    const endY = startY + Math.ceil(canvas.height / blockSize / 1) + 3;
+
+    let treesBelowPlayer = [];
+    let treesAbovePlayer = [];
+    renderedBlocks = []; // Resetowanie renderedBlocks na początku rysowania
+    chunkPositions = []; // Resetowanie chunkPositions
+
+    for (let chunkX = startX; chunkX < endX; chunkX++) {
+        for (let chunkY = startY; chunkY < endY; chunkY++) {
+            generateChunk(chunkX, chunkY);
+            const chunkKey = `${chunkX},${chunkY}`;
+            const blocks = chunks[chunkKey];
+
+            // Zbieranie pozycji chunków
+            const chunkPosition = {
+                x: chunkX * blockSize - offsetX,
+                y: chunkY * blockSize - offsetY,
+                width: blockSize,
+                height: blockSize
+            };
+            chunkPositions.push(chunkPosition);
+
+            // Rysowanie bloków
+            blocks.forEach((block, index) => {
+                const x = block.x + chunkX * blockSize - offsetX;
+                const y = block.y + chunkY * blockSize - offsetY;
+
+                renderedBlocks.push({ type: block.type, x: x, y: y }); // Zbieranie bloków
+
+                if (animatedTextures[block.type]) {
+                    // Animowana tekstura
+                    const anim = animatedTextures[block.type];
+                    const currentTime = performance.now() / 1000; // Aktualny czas w sekundach
+                    if (currentTime - anim.lastFrameTime > anim.speed) {
+                        anim.currentFrame = (anim.currentFrame + 1) % anim.frames.length;
+                        anim.lastFrameTime = currentTime;
+                    }
+                    ctx.drawImage(anim.frames[anim.currentFrame], x, y, blockSize, blockSize);
+                } else {
+                    // Statyczna tekstura
+                    ctx.drawImage(textures[block.type], x, y, blockSize, blockSize);
+                }
+
+                // Warunek: jeśli więcej niż 2 bloki w chunku, wyświetl tekst nad ostatnim blokiem
+                if (blocks.length > 5 && index === blocks.length - 1) {
+                    // Ustawienia tekstu
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillStyle = 'white';
+                    ctx.textAlign = 'center';
+
+                    // Rysowanie tekstu nad blokiem (przesunięcie y o 5 pikseli w górę)
+                    ctx.fillText(`x${blocks.length - 2}`, x + blockSize / 2, y - 5);
+                }
+
+                // Sprawdzanie typów bloków dla drzew, aby je później odpowiednio narysować
+                if (block.type === 'tree0' || block.type === 'yew0' || block.type === 'pine0') {
+                    treesBelowPlayer.push({ type: block.type, x: x, y: y });
+                }
+                if (block.type === 'tree1' || block.type === 'tree2' || block.type === 'birch1' || block.type === 'birch2' || block.type === 'yew1' || block.type === 'pine1' || block.type === 'pine2') {
+                    treesAbovePlayer.push({ type: block.type, x: x, y: y });
+                }
+            });
+        }
+    }
+
+    return { treesBelowPlayer, treesAbovePlayer };
+}
+
+let targetX = offsetX; // Docelowa pozycja X
+let targetY = offsetY; // Docelowa pozycja Y
+let smoothingFactor = 0.2; // Współczynnik gładkości (jak szybko gracz się przesuwa)
+
+const targetFPS = 20; // Desired frames per second
+const frameDuration = 1000 / targetFPS; // Duration of each frame in milliseconds
+
+function update() {
+    const startTime = performance.now(); // Get the current time at the start of the update
+    updateDayNightCycle();
+    playerX = offsetX; // Gracz jest zawsze na środku ekranu
+    playerY = offsetY;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let previousOffsetX = offsetX;
+    let previousOffsetY = offsetY;
+
+    // Ruch gracza
+    if (moveLeft) offsetX -= playerSpeed;
+    if (moveRight) offsetX += playerSpeed;
+    if (moveUp) offsetY -= playerSpeed;
+    if (moveDown) offsetY += playerSpeed;
+
+    // Ustawienie celu na zaokrągloną pozycję, gdy nie ma ruchu
+    if (!moveDown && !moveUp && !moveRight && !moveLeft) {
+        targetX = (Math.floor(offsetX / 32) * 32) + 10; // Zaokrąglamy offsetX
+        targetY = (Math.floor(offsetY / 32) * 32) + 10; // Zaokrąglamy offsetY
+    }
+
+    // Gładkie przesuwanie do docelowej pozycji
+    if (!moveDown && !moveUp && !moveRight && !moveLeft) {
+        offsetX += (targetX - offsetX) * smoothingFactor;
+        offsetY += (targetY - offsetY) * smoothingFactor;
+        if (Math.abs(offsetX - targetX) < 0.1 && Math.abs(offsetY - targetY) < 0.1) {
+            offsetX = targetX;
+            offsetY = targetY;
+        }
+    }
+
+    const { treesBelowPlayer, treesAbovePlayer } = drawChunks();
+
+    const playerCenterX = player.x + offsetX + player.width * 2;
+    const playerCenterY = player.y + offsetY + player.height * 2;
+
+    let collision = checkCollisionWithRock(playerCenterX, playerCenterY);
+    if (collision) {
+        offsetX = previousOffsetX;
+        offsetY = previousOffsetY;
+        console.log('Kolizja z blokiem rock, cofanie ruchu.');
+    }
+
+    // Rysowanie chunków i drzew
+    drawTreesBelowPlayer(treesBelowPlayer);
+    ctx.drawImage(player.texture, player.x, player.y, player.width, player.height);
+    drawTreesAbovePlayer(treesAbovePlayer);
+    drawText();
+
+    // Dodanie efektu ciemności nad każdym chunk'iem, jeśli w pobliżu nie ma pochodni
+    // Dodanie efektu ciemności nad każdym chunk'iem, jeśli w pobliżu nie ma pochodni
+chunkPositions.forEach(chunk => {
+    if (!isNearTorch(renderedBlocks, chunk.x, chunk.y)) {
+        // Ustawienie przezroczystości w zależności od nightpower
+        const darknessOpacity = nightpower / maxNightpower;
+
+        // Rysowanie półprzezroczystego, czarnego prostokąta nad chunk'iem
+        // Dostosowanie rozmiaru, aby ciemność nie miała przerw
+        ctx.fillStyle = `rgba(0, 0, 0, ${darknessOpacity})`;
+
+        // Zaokrąglenie pozycji chunków, aby były całkowite
+        const adjustedX = Math.round(chunk.x);
+        const adjustedY = Math.round(chunk.y);
+
+        // Dodanie dodatkowych pikseli do rozmiaru, aby uniknąć przerw
+        const adjustedWidth = chunk.width+0.1; // dodanie 1 piksela do szerokości
+        const adjustedHeight = chunk.height + 0.1; // dodanie 1 piksela do wysokości
+
+        ctx.fillRect(adjustedX, adjustedY, adjustedWidth, adjustedHeight);
+    }
+});
+
+    // Aktualizacja animacji i inne logiki gry
+    updatePlayerAnimation();
+
+    // Obliczanie czasu wykonania i czekanie na kolejną klatkę
+    const endTime = performance.now();
+    const timeTaken = endTime - startTime;
+    const timeToWait = Math.max(0, frameDuration - timeTaken);
+
+    setTimeout(update, timeToWait); // Wywołanie update ponownie
+}
+
+
+let hitboxShowEnabled = 0;  // Zmienna kontrolująca widoczność hitboxów
+
+// Funkcja sprawdzająca kolizję z blokami "rock"
+function checkCollisionWithRock(playerX, playerY) {
+    const collisionRadius = 32; // Promień kolizji (32 / 2)
+    let collisionDetected = false;
+
+    for (let block of renderedBlocks) {
+        if (block.type === 'rock'||block.type === 'tree0'||block.type === 'birch0'||block.type === 'yew0'|| block.type === 'pine0'|| block.type === 'stone_wall'|| block.type === 'log_wall'|| block.type === 'log') {
+          
+            let dx = (player.x + player.width / 2) - (block.x + blockSize / 2);
+let dy = (player.y + player.height / 2) - (block.y + blockSize / 2);
+
+            
+            let distance = Math.sqrt(dx * dx + dy * dy);
+if (hitboxShowEnabled == 1) {
+  ctx.fillStyle = 'red';
+  ctx.fillRect(block.x, block.y, blockSize, blockSize);
+}
+            if (distance < collisionRadius) {
+                // Jeśli kolizja, zaznacz blok na czerwono
+                
+                collisionDetected = true; // Kolizja wykryta
+            }
+        }
+    }
+
+    return collisionDetected; // Zwracamy wynik kolizji
+}
+
+
+let currentText = "";  // Aktualny tekst do wyświetlenia
+let textTimeout = 0;   // Czas, kiedy tekst ma zniknąć
+let textX = 0;         // Pozycja X tekstu
+let textY = 0;         // Pozycja Y tekstu
+
+function showTextInCanvas(text) {
+    // Ustawiamy tekst i pozycję
+    currentText = text;
+    textX = canvas.width / 2;
+    textY = canvas.height -20;
+
+    // Ustawiamy, aby tekst zniknął za 2 sekundy
+    textTimeout = performance.now() + 2000;  // Teraz + 2 sekundy
+}
+
+// Funkcja do rysowania tekstu
+function drawText() {
+    if (currentText !== "" && performance.now() < textTimeout) {
+        // Rysowanie tekstu na canvasie, jeśli jeszcze nie wygasł czas
+        ctx.font = "10px Arial";
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center";
+        ctx.fillText(currentText, textX, textY);
+    }
+}
+
+
+
+
+
+
+// Start the update loop
+update();
+
+// Zmienne do deltaTime
+let lastTime = 0;
+
+function mainLoop(timestamp) {
+    const deltaTime = timestamp - lastTime; // Obliczamy deltaTime
+    lastTime = timestamp; // Ustawiamy ostatni czas na obecny timestamp
+    update(deltaTime); // Przekazujemy deltaTime do update
+}
+
+requestAnimationFrame(mainLoop);
+
+
+
+
+
+
+// Start gry
+window.onload = update;
+function removeBlockAtPosition(x, y, blockTypeToRemove) {
+  let maxblocktorm=0
+    const globalX = x + offsetX;
+    const globalY = y + offsetY;
+
+    const snapToBlockGrid = (value) => Math.floor(value / blockSize) * blockSize;
+    const snappedGlobalX = snapToBlockGrid(globalX);
+    const snappedGlobalY = snapToBlockGrid(globalY);
+
+    // Obliczamy chunk, do którego należy ten blok
+    const chunkX = Math.floor(snappedGlobalX / blockSize);
+    const chunkY = Math.floor(snappedGlobalY / blockSize);
+    const chunkKey = `${chunkX},${chunkY}`;
+
+    // Obliczamy odległość od gracza (offsetX, offsetY)
+    const distanceFromPlayer = Math.sqrt(
+        (snappedGlobalX - offsetX) ** 2 + (snappedGlobalY - offsetY) ** 2
+    );
+
+    // Sprawdzamy czy odległość jest mniejsza niż 10 bloków
+    if (distanceFromPlayer > 10 * blockSize) {
+        return; // Jeśli blok jest poza zasięgiem, przerywamy
+    }
+
+    // Sprawdzenie czy chunk istnieje
+    const chunkBlocks = chunks[chunkKey];
+    if (!chunkBlocks) return;  // Jeśli chunk nie istnieje, przerywamy
+
+    // Szukamy konkretnego bloku w chunku
+    const blockToRemove = chunkBlocks.find(block => {
+        const blockGlobalX = block.x + (chunkX * blockSize);
+        const blockGlobalY = block.y + (chunkY * blockSize);
+
+        return (
+            blockGlobalX === snappedGlobalX &&
+            blockGlobalY === snappedGlobalY &&
+            block.type === blockTypeToRemove
+        );
+    });
+
+    // Jeśli znaleziono blok, usuwamy go
+    if (blockToRemove) {
+        const index = chunkBlocks.indexOf(blockToRemove);
+        if (index > -1) {
+          
+          if(maxblocktorm<1){
+            chunkBlocks.splice(index, 1);
+            
+          }
+          maxblocktorm++
+            console.log(`Usunięto blok: ${blockToRemove.type} na (${snappedGlobalX}, ${snappedGlobalY})`);
+        }
+    }
+}
+
+
+
+function setblockatposition(x, y, blockTypeToSet) {
+    const globalX = x + offsetX;
+    const globalY = y + offsetY;
+
+    const snapToBlockGrid = (value) => Math.floor(value / blockSize) * blockSize;
+    const snappedGlobalX = snapToBlockGrid(globalX);
+    const snappedGlobalY = snapToBlockGrid(globalY);
+
+    // Obliczamy chunk, do którego należy ten blok
+    const chunkX = Math.floor(snappedGlobalX / blockSize);
+    const chunkY = Math.floor(snappedGlobalY / blockSize);
+    const chunkKey = `${chunkX},${chunkY}`;
+
+    // Sprawdzamy, czy chunk istnieje
+    const chunkBlocks = chunks[chunkKey];
+    if (!chunkBlocks) {
+        console.log(`Chunk ${chunkKey} nie istnieje.`);
+        return; // Jeśli chunk nie istnieje, przerywamy
+    }
+
+    // Usuwamy wszystkie bloki w chunku
+    chunkBlocks.length = 0; // Usunięcie wszystkich bloków w chunku
+
+    // Dodajemy nowy blok na pozycji (0, 0) w chunku
+    chunkBlocks.push({ x: 0, y: 0, type: blockTypeToSet });
+    console.log(`Dodano blok: ${blockTypeToSet} na (${chunkX}, ${chunkY})`);
+}
+
+function removeTree(x, y) {
+    // Usunięcie tree0
+    setblockatposition(x, y, "grass");
+    // Usunięcie tree1 (blok nad tree0)
+   
+}
+
+
+
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const scaledX = (e.clientX - rect.left) * scaleX;
+    const scaledY = (e.clientY - rect.top) * scaleY;
+
+    const x = (Math.floor(scaledX / blockSize) * blockSize) + 2;
+    const y = (Math.floor(scaledY / blockSize) * blockSize) + 2;
+
+    console.log(`Click Position: (${x}, ${y})`);
+const blockTypes = ["stones", "rock", "sticks", "nettle", "kite", "tallgrass", "yellow", "violet", "treebark", "toadstool", "fern", "shiny", "blackberry","stick","fiber","stone_axe","handrill-kit","blackberry-fruit","woodboard","briar","kite"];
+    // Sprawdzenie, jaki blok został kliknięty
+    if (checkBlockAtPosition(x, y, "stones")&& checkEmptySlots(0)) {
+        addItem("stone", Math.random() < 0.5 ? 1 : 2);  // Możesz zdobyć 1 lub 2 kamienie
+        
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  return;
+
+    }
+    if (checkBlockAtPosition(x, y, "sticks")&& checkEmptySlots(0)) {
+        const randomItem = Math.random() < 0.5 ? "stick" : (Math.random() < 0.5 ? "treebark" : "longstick");
+        addItem(randomItem, 1);  // Możesz zdobyć stick, treebark lub longstick
+        
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  return;
+
+    }
+    if (checkBlockAtPosition(x, y, "rock")&& checkEmptySlots(0)) {
+        addItem("bigrock", 1);  // Zyskujesz 1 rock
+        
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  return;
+
+    }
+if (checkBlockAtPosition(x, y, "briar")&& checkEmptySlots(0)) {
+  addItem("briar-fruit", 1); // Zyskujesz 1 rock
+  
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  return;
+
+}
+
+if (checkBlockAtPosition(x, y, "blackberry")&& checkEmptySlots(0)) {
+  addItem("blackberry-fruit", 1); // Zyskujesz 1 rock
+  
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  return;
+}
+
+Object.keys(allItems).forEach(itemName => {
+  if (checkBlockAtPosition(x, y, itemName) && checkEmptySlots(0)) {
+    addItem(itemName, 1); // Dodajemy przedmiot o tej samej nazwie, co nazwa w allItems
+    removeBlockAtPosition(x, y, itemName); // Usuwamy blok po kliknięciu
+    return;
+  }
+});
+
+
+    if (["tree0"].some(tree => checkBlockAtPosition(x, y, tree))) {
+        if (checkIfItems("stone_axe", 1) && checkEmptySlots(2)) {  // Potrzebujesz siekiery i 2 miejsc w ekwipunku
+            addItem("log", 3);
+            addItem("treebark", 1);
+            removeTree(x, y);  // Usuwamy drzewo
+        } else {
+            showTextInCanvas("you need a tool");
+        }
+    }
+    if (["pine0"].some(tree => checkBlockAtPosition(x, y, tree))) {
+  if (checkIfItems("stone_axe", 1) && checkEmptySlots(2)) { // Potrzebujesz siekiery i 2 miejsc w ekwipunku
+    addItem("log", 3);
+    addItem("resin", 1);
+    removeTree(x, y); // Usuwamy drzewo
+  } else {
+    showTextInCanvas("you need a tool");
+  }
+}
+if (["birch0"].some(tree => checkBlockAtPosition(x, y, tree))) {
+  if (checkIfItems("stone_axe", 1) && checkEmptySlots(2)) { // Potrzebujesz siekiery i 2 miejsc w ekwipunku
+    addItem("log", 1);
+    addItem("birch-powder", 4);
+    removeTree(x, y); // Usuwamy drzewo
+  } else {
+    showTextInCanvas("you need a tool");
+  }
+}
+});
+
+// Funkcja sprawdzająca, czy na danej pozycji znajduje się blok typu 'type'
+function checkBlockAtPosition(x, y, type) {
+    // Oblicz pozycje globalne z przesunięciem
+    const globalX = x + offsetX;
+    const globalY = y + offsetY;
+
+    // Funkcja zaokrąglająca do najbliższej wielokrotności rozmiaru bloku
+    const snappedGlobalX = Math.floor(globalX / blockSize) * blockSize;
+    const snappedGlobalY = Math.floor(globalY / blockSize) * blockSize;
+
+    // Iterowanie przez chunki, ale tylko te, które są w pobliżu kliknięcia
+    const chunkX = Math.floor(snappedGlobalX / blockSize);
+    const chunkY = Math.floor(snappedGlobalY / blockSize);
+
+    const neighboringChunks = [
+        `${chunkX},${chunkY}`,   // dokładnie ten chunk
+
+    ];
+
+    // Sprawdzamy tylko sąsiednie chunki
+    for (let chunkKey of neighboringChunks) {
+        let chunkBlocks = chunks[chunkKey];
+        if (!chunkBlocks) continue; // pomiń chunk, jeśli nie istnieje
+
+        // Iterujemy przez wszystkie bloki w danym chunku
+        for (let i = 0; i < chunkBlocks.length; i++) {
+            let block = chunkBlocks[i];
+
+            // Sprawdzamy najpierw, czy typ pasuje, aby ograniczyć liczbę operacji
+            if (block.type !== type) continue;
+
+            let blockGlobalX = block.x + chunkX * blockSize;
+            let blockGlobalY = block.y + chunkY * blockSize;
+
+            // Jeśli pasuje współrzędna, zwracamy true
+            if (blockGlobalX === snappedGlobalX && blockGlobalY === snappedGlobalY) {
+                return true;
+            }
+        }
+    }
+    return false;  // Nie znaleziono bloku o zadanym typie
+}
+
+// Funkcja sprawdzająca, czy w ekwipunku jest wystarczająco dużo wolnych miejsc
+function checkEmptySlots(number) {
+  const emptySlots = slots - yourItems.length;
+  if (emptySlots <= number) {
+    showTextInCanvas(" lack of space ");
+    return false;
+  }
+  return true;
+}
+
+
+
+
+</script>
+<div onclick="openInventory()" style="position: absolute; top :0; left:0; width:20px; height:20px; background: #666666;">o</div>
+
+    <style>
+/* Ciemny retro styl */
+
+.inventory-container {
+    position: fixed;
+    font-family: 'Courier New', Courier, monospace;
+    color: white;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 20px;
+    visibility: hidden; /* Ukryty domyślnie */
+    box-sizing: border-box;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #333;
+    border: none;
+    color: #00ff00;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+    width: 100%; /* Gwarantuje dopasowanie do szerokości */
+    box-sizing: border-box;
+}
+
+.slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    aspect-ratio: 1/1; /* Gwarantuje, że sloty są kwadratowe */
+    background-color: #222;
+    border: 2px solid #555;
+    justify-content: center;
+    border-radius: 5px;
+}
+
+.slot img {
+    max-width: 70%;
+    max-height: 70%;
+}
+
+.slot-name {
+    margin-top: 5px;
+    font-size: 5px;
+    text-align: center;
+}
+
+.crafting-recipes {
+    display: flex;
+    flex-direction: column;
+    font-size: 10px;
+    margin-bottom: 20px;
+    max-height: 150px;
+    overflow-y: auto; /* W przypadku dużej liczby receptur, pojawi się przewijanie */
+}
+
+.recipe {
+    background-color: #333;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    display: flex;
+flex-wrap: wrap;
+}
+
+.recipe:hover {
+    background-color: #444;
+}
+
+.recipe img {
+    width: 30px;
+    image-rendering: pixelated;
+    vertical-align: middle;
+}
+
+.recipe-name {
+    margin-top: 5px;
+    font-size: 12px;
+    text-align: center;
+}
+.itemImg{
+width: 30px;
+background-size: 60%;
+image-rendering:pixelated;
+}
+.hover:hover{
+  color:#3DFF00
+}
+
+    </style>
+
+    <div class="inventory-container"  id="inventory">
+      <div onclick="saveGameState();" style="position:absolute; top:60px; right:0 ; background:#666666; " class="hover">save game</div>
+      
+      <div onclick="loadGameState();"  style="position:absolute; top:90px; right:0 ; background:#666666;"class="hover">load game</div>
+        <button class="close-button" onclick="closeInventory()">Close</button>
+
+        <div class="crafting-recipes" id="crafting">
+            <!-- Crafting recipes will be displayed here -->
+        </div>
+
+        <div class="slots" id="slots">
+            <!-- Inventory slots will be generated here -->
+        </div>
+    </div>
+
+    <script>
+        var slots = 8;  // Max slots
+        var allItems = { // Definicja tekstur przedmiotów
+            "fiber": "./fiber.png",
+            "nettle": "./nettle.png",
+            "bigrock": "./largerock.png",
+            "stone": "./stones.png",
+            "sharpstone": "./sharpstone.png",
+            "stick": "./sticks.png",
+            "longstick": "./longstick.png",
+            "woodboard": "./board.png",
+            "treebark": "./treebark.png",
+            "yew": "./yew-fruit.png",
+            "briar-fruit": "./briar-fruit.png",
+            "kite": "./kite.png",
+            "resin": "./resin.png",
+            "woodboard": "./board.png",
+"handdrill-kit": "./handdrill.png",
+"fireroll-kit": "./fireroll.png",
+"cordage": "./cordage.png",
+"dowel": "./dowel.png",
+"log": "./tree0.png",
+"stone_axe": "./stone_axe.png",
+"stone_scyte": "./stone_scyte.png",
+"fireplow": "./fireplow.png",
+"birch-powder": "./birch-powder.png",
+"blackberry-fruit": './blackberry-fruit.png',
+stone_floor: './stone_floor.png',
+  stone_wall: './stone_wall.png',
+  fiber_floor: './fiber_floor.png',
+  log_wall: './log_wall.png',
+  daffodil: './daffodil.png',
+  fern: './fern.png',
+  thistle: './thistle.png',
+  toadstool: './toadstool.png',
+  violet: './violet.png',
+  yellow: './yellow.png',
+  dandelion: './dandelion.png',
+  torch: './torch.png',
+        };
+
+        // Definicja receptur
+        var recipes = {
+"fiber": ["treebark", "treebark"],"torch": ["stick", "fiber"],
+            "sharpstone": ["stone","bigrock"],
+"fireplow": ["longstick", "woodboard"],
+"woodboard": ["log", "sharpstone"],
+"fireroll": ["fiber", "fiber","woodboard","woodboard","birch-powder"],
+"stone_floor": ["stone", "stone", "stone", "stone", "stone", "stone"],
+"fiber_floor": ["fiber", "fiber", "fiber", "fiber", "fiber", "fiber"],
+"log_wall": ["log", "log", "log", "log"],
+"stone_wall": ["bigrock", "bigrock", "bigrock", "bigrock","bigrock"],
+"cordage": ["fiber", "treebark"],
+"stone_axe": ["longstick", "sharpstone","cordage"],
+        };
+
+        var yourItems = [];  // Ekwipunek
+
+        // Otwórz ekwipunek
+        function openInventory() {
+            document.getElementById("inventory").style.visibility = "visible";
+            document.getElementById("inventory").style.pointerEvents = "all";
+            updateInventory();
+            updateCrafting();
+        }
+
+        // Zamknij ekwipunek
+        function closeInventory() {
+            document.getElementById("inventory").style.visibility = "hidden";
+            document.getElementById("inventory").style.pointerEvents = "none";
+        }
+
+        // Funkcja dodawania przedmiotu do ekwipunku
+        function addItem(item, amount) {
+            for (let i = 0; i < amount; i++) {
+                if (yourItems.length < slots) {
+                    yourItems.push(item);
+                } else {
+                    console.log("Not enough space!");
+                    return;
+                }
+            }
+            updateInventory();
+            updateCrafting();
+        }
+
+        // Funkcja sprawdzania ilości przedmiotów w ekwipunku
+        function checkIfItems(item, amount) {
+            let count = yourItems.filter(i => i === item).length;
+            return count >= amount;
+        }
+
+        // Funkcja usuwania przedmiotów z ekwipunku
+        function deleteItems(item, amount) {
+            let deleted = 0;
+            for (let i = 0; i < yourItems.length && deleted < amount; i++) {
+                if (yourItems[i] === item) {
+                    yourItems.splice(i, 1);
+                    i--;  // Cofnięcie indeksu, by nie przeskoczyć na kolejny element
+                    deleted++;
+                }
+            }
+            updateInventory();
+        }
+
+        // Funkcja craftingu – usuwa wymagane przedmioty i dodaje crafted item
+        function craftItem(item) {
+            const recipe = recipes[item];
+            let canCraft = true;
+
+            // Sprawdzenie, czy mamy wszystkie potrzebne przedmioty
+            recipe.forEach(reqItem => {
+                if (!checkIfItems(reqItem, 1)) {
+                    canCraft = false;
+                }
+            });
+
+            // Jeśli można stworzyć, usuń przedmioty i dodaj crafted item
+            if (canCraft) {
+                recipe.forEach(reqItem => deleteItems(reqItem, 1));
+                addItem(item, 1);
+                console.log(item + " crafted!");
+            } else {
+                console.log("Not enough items to craft " + item);
+            }
+        }
+
+        // Aktualizacja wyświetlania ekwipunku
+        // Funkcja dodawania przedmiotu do aktualnej pozycji gracza
+        
+   function dropItemAtPlayerPosition(item) {
+    // Zaokrąglij pozycję gracza do siatki bloków 32x32
+    let playerX = Math.floor((offsetX + player.x) / blockSize) * blockSize;
+    let playerY = Math.floor((offsetY + player.y) / blockSize) * blockSize;
+
+    // Zmiana pozycji na podstawie ostatniego kierunku
+    switch (lastDirection) {
+        case 'up':
+            playerY -= blockSize;
+            break;
+        case 'down':
+            playerY += blockSize;
+            break;
+        case 'left':
+            playerX -= blockSize;
+            break;
+        case 'right':
+            playerX += blockSize;
+            break;
+        case 'right-up':
+            playerX += blockSize;
+            playerY -= blockSize;
+            break;
+        case 'left-up':
+            playerX -= blockSize;
+            playerY -= blockSize;
+            break;
+    }
+
+    // Dodanie nowego bloku z zaokrąglonymi współrzędnymi
+    const newBlock = {
+        x: playerX / blockSize,  // Skala bloków
+        y: playerY / blockSize,
+        type: item
+    };
+
+    // Klucz chunka na podstawie współrzędnych bloków
+    const chunkKey = `${Math.floor(newBlock.x)},${Math.floor(newBlock.y)}`;
+
+    // Jeśli chunk nie istnieje, stwórz go
+    if (!chunks[chunkKey]) {
+        chunks[chunkKey] = [];
+    }
+
+    // Dodanie bloku do chunka
+    chunks[chunkKey].push({x:0,y:0,type:item});
+
+    updateInventory()
+    updateCrafting()
+}
+
+
+// Aktualizacja wyświetlania ekwipunku z obsługą dblclick
+function updateInventory() {
+    const slotsContainer = document.getElementById("slots");
+    slotsContainer.innerHTML = "";  // Czyszczenie slotów
+
+    for (let i = 0; i < slots; i++) {
+        const slot = document.createElement("div");
+        slot.classList.add("slot");
+
+        if (yourItems[i]) {
+            const itemImg = document.createElement("img");
+            itemImg.src = allItems[yourItems[i]];
+            itemImg.classList = "itemImg";
+            const itemName = document.createElement("div");
+            itemName.classList.add("slot-name");
+            itemName.innerText = yourItems[i];
+
+            // Nasłuchiwanie na dblclick
+            slot.addEventListener('dblclick', () => {
+                const itemToRemove = yourItems[i];
+                if (itemToRemove) {
+                    dropItemAtPlayerPosition(itemToRemove);  // Umieść przedmiot na chunku
+                    yourItems.splice(i, 1);  // Usuń przedmiot z ekwipunku
+                    updateInventory();  // Odśwież ekwipunek
+                }
+            });
+
+            slot.appendChild(itemImg);
+            slot.appendChild(itemName); // Dodaj nazwę przedmiotu pod obrazkiem
+        }
+
+        slotsContainer.appendChild(slot);
+    }
+}
+
+        // Sprawdź, czy można stworzyć przedmiot
+        function canCraft(recipe) {
+            const neededItems = [...recipe];
+            const inventoryCopy = [...yourItems];
+
+            for (let i = 0; i < neededItems.length; i++) {
+                const index = inventoryCopy.indexOf(neededItems[i]);
+                if (index !== -1) {
+                    inventoryCopy.splice(index, 1);  // Usuń użyty przedmiot
+                } else {
+                    return false;  // Brak wymaganego przedmiotu
+                }
+            }
+            return true;
+        }
+
+        // Aktualizacja wyświetlania receptur
+        function updateCrafting() {
+    const craftingContainer = document.getElementById("crafting");
+    craftingContainer.innerHTML = "";  // Czyszczenie receptur
+
+    for (const recipeName in recipes) {
+        if (canCraft(recipes[recipeName])) {
+            const recipeDiv = document.createElement("div");
+            recipeDiv.classList.add("recipe");
+
+            // Ustawienie akcji na kliknięcie receptury
+            recipeDiv.addEventListener("click", function() {
+                craftItem(recipeName);
+            });
+
+            // Dodanie obrazka przedmiotu, który można stworzyć
+            const recipeImg = document.createElement("img");
+            recipeImg.src = allItems[recipeName];
+            recipeDiv.appendChild(recipeImg);
+
+            // Dodanie opisu przedmiotu (np. "fiber: ")
+            const recipeNameDiv = document.createElement("div");
+            recipeNameDiv.classList.add("recipe-name");
+            recipeNameDiv.innerText = `${recipeName}:`;
+
+            recipeDiv.appendChild(recipeNameDiv);
+
+            // Tworzenie kontenera na wymagane przedmioty (w jednej linii)
+            const itemsContainer = document.createElement("div");
+            itemsContainer.style.display = "flex";
+            itemsContainer.style.flexWrap = "wrap"; // Pozwoli na zawijanie, gdy nie ma miejsca
+
+            // Dodawanie obrazków i nazw wymaganych przedmiotów
+            recipes[recipeName].forEach(item => {
+                // Tworzenie obrazka wymaganego przedmiotu
+                const itemImg = document.createElement("img");
+                itemImg.src = allItems[item];
+                itemImg.style.width = "30px"; // Ustawienie szerokości obrazka
+                itemImg.style.marginRight = "5px"; // Odstęp od tekstu
+
+                // Tworzenie nazwy przedmiotu
+                const itemName = document.createElement("span");
+                itemName.innerText = item;
+                itemName.style.marginRight = "15px"; // Dodanie odstępu po nazwie
+
+                // Dodanie obrazka i nazwy do kontenera
+                itemsContainer.appendChild(itemImg);
+                itemsContainer.appendChild(itemName);
+            });
+
+            // Dodanie kontenera do receptury
+            recipeDiv.appendChild(itemsContainer);
+
+            craftingContainer.appendChild(recipeDiv);
+        }
+    }
+}
+
+        // Dodaj przykładowe przedmioty do ekwipunku
+        
+        // Otwórz ekwipunek przy starcie gry
+        openInventory();
+        closeInventory()
+        
+
+// Funkcja zapisująca stan gry do LocalStorage
+function saveGameState() {
+    // Zapisz pozycję gracza
+    localStorage.setItem('playerX', offsetX);
+    localStorage.setItem('playerY', offsetY);
+    localStorage.setItem('nightcycle', nightpower);
+
+    // Zapisz przedmioty gracza
+    localStorage.setItem('youritems', JSON.stringify(yourItems));
+
+    // Zapisz stan chunków
+    localStorage.setItem('chunks', JSON.stringify(chunks));
+
+    
+}
+// Funkcja wczytująca stan gry z LocalStorage
+function loadGameState() {
+    // Wczytaj pozycję gracza
+    increasing=false
+    const storedPlayerX = localStorage.getItem('playerX');
+    const storedPlayerY = localStorage.getItem('playerY');
+    nightpower=localStorage.getItem('nightcycle')
+    setTimeout(function (){
+      increasing=true
+    },5000)
+    
+    if (storedPlayerX !== null && storedPlayerY !== null) {
+        offsetX = parseFloat(storedPlayerX);
+        offsetY = parseFloat(storedPlayerY);
+    }
+
+    const storedItems = localStorage.getItem('youritems');
+    if (storedItems !== null) {
+        yourItems = JSON.parse(storedItems);
+        
+        updateInventory();
+updateCrafting();
+    }
+
+    // Wczytaj stan chunków
+    const storedChunks = localStorage.getItem('chunks');
+    if (storedChunks !== null) {
+        chunks = JSON.parse(storedChunks);
+        
+    }
+
+   
+}
+
+
+
+    </script>
+    
+    
+    
+    <script>
+      const joystick = document.getElementById('joystick');
+const thumb = document.getElementById('thumb');
+let joystickActive = false;
+let thumbOffsetX = 0,
+  thumbOffsetY = 0;
+
+// Obsługa dotyku
+joystick.addEventListener('touchstart', (e) => {
+  joystickActive = true;
+  const touch = e.touches[0];
+  thumb.style.display = 'block'; // Wyświetl thumb
+
+  // Ustawienie thumba w początkowej pozycji
+  const joystickRect = joystick.getBoundingClientRect();
+  thumbOffsetX = touch.clientX - joystickRect.left - 20; // Pozycja thumb
+  thumbOffsetY = touch.clientY - joystickRect.top - 20;
+  thumb.style.left = `${thumbOffsetX}px`;
+  thumb.style.top = `${thumbOffsetY}px`;
+});
+
+joystick.addEventListener('touchmove', (e) => {
+  if (!joystickActive) return;
+  const touch = e.touches[0];
+  const joystickRect = joystick.getBoundingClientRect();
+  const deltaX = touch.clientX - joystickRect.left - 50; // Środek joysticka
+  const deltaY = touch.clientY - joystickRect.top - 50;
+
+  // Ograniczenie ruchu thumba do obszaru joysticka
+  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  if (distance > 30) {
+    const angle = Math.atan2(deltaY, deltaX);
+    thumbOffsetX = 30 * Math.cos(angle); // Ustawienie x
+    thumbOffsetY = 30 * Math.sin(angle); // Ustawienie y
+  } else {
+    thumbOffsetX = deltaX;
+    thumbOffsetY = deltaY;
+  }
+
+  // Ustawienie thumb w nowej pozycji
+  thumb.style.left = `${thumbOffsetX + 50}px`; // Przesunięcie o połowę szerokości joysticka
+  thumb.style.top = `${thumbOffsetY + 50}px`; // Przesunięcie o połowę wysokości joysticka
+
+  // Ustalanie kierunku ruchu
+  moveLeft = thumbOffsetX < -10;
+  moveRight = thumbOffsetX > 10;
+  moveUp = thumbOffsetY < -10;
+  moveDown = thumbOffsetY > 10;
+});
+
+joystick.addEventListener('touchend', () => {
+  joystickActive = false;
+  thumb.style.display = 'none'; // Ukryj thumb
+  thumb.style.left = '20px'; // Reset pozycji thumba
+  thumb.style.top = '20px';
+  thumbOffsetX = 0; // Reset wartości
+  thumbOffsetY = 0; // Reset wartości
+  moveLeft = moveRight = moveUp = moveDown = false;
+});
+
+// Poruszanie gracza za pomocą klawiatury
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') moveLeft = true;
+    if (e.key === 'ArrowRight') moveRight = true;
+    if (e.key === 'ArrowUp') moveUp = true;
+    if (e.key === 'ArrowDown') moveDown = true;
+});
+document.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft') moveLeft = false;
+    if (e.key === 'ArrowRight') moveRight = false;
+    if (e.key === 'ArrowUp') moveUp = false;
+    if (e.key === 'ArrowDown') moveDown = false;
+});
+
+    </script>
