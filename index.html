@@ -116,8 +116,8 @@ function isPlayerInWater() {
     return isInWater;
 }
 
-let waterspeed = 3;
-let norspeed = 4;
+let waterspeed = 2;
+let norspeed = 5;
 let playerSpeed = 4;
 let player = {
     x: canvas.width / 2,
@@ -177,80 +177,72 @@ function stopFootstepSound() {
 }
 
 let lastDirection = 'down'; // Domyślny kierunek patrzenia
-
 function updatePlayerAnimation() {
     const inWater = isPlayerInWater(); // Sprawdzenie, czy gracz jest w wodzie
 
+    // Logika wyboru animacji
     if (inWater) {
-        // Animacje dla ruchu w wodzie
-        if (moveRight) {
-            player.currentAnimation = 'inwater_moveright';
-            lastDirection = 'right';
-        } else if (moveLeft) {
-            player.currentAnimation = 'inwater_moveleft';
-            lastDirection = 'left';
-        } else if (moveUp) {
-            player.currentAnimation = 'inwater_moveup';
-            lastDirection = 'up';
-        } else if (moveDown) {
-            player.currentAnimation = 'inwater_movedown';
-            lastDirection = 'down';
-        }
+        if (moveRight) player.currentAnimation = 'inwater_moveright';
+        else if (moveLeft) player.currentAnimation = 'inwater_moveleft';
+        else if (moveUp) player.currentAnimation = 'inwater_moveup';
+        else if (moveDown) player.currentAnimation = 'inwater_movedown';
         playerSpeed = waterspeed;
     } else {
-        // Standardowe animacje
         playerSpeed = norspeed;
-        if (moveRight && moveUp) {
-            player.currentAnimation = 'moveupright';
-            lastDirection = 'right-up';
-        } else if (moveLeft && moveUp) {
-            player.currentAnimation = 'moveupleft';
-            lastDirection = 'left-up';
-        } else if (moveRight) {
-            player.currentAnimation = 'moveright';
-            lastDirection = 'right';
-        } else if (moveLeft) {
-            player.currentAnimation = 'moveleft';
-            lastDirection = 'left';
-        } else if (moveUp) {
-            player.currentAnimation = 'moveup';
-            lastDirection = 'up';
-        } else if (moveDown) {
-            player.currentAnimation = 'movedown';
-            lastDirection = 'down';
-        } else {
-            // Zatrzymanie gracza
+        if (moveRight && moveUp) player.currentAnimation = 'moveupright';
+        else if (moveLeft && moveUp) player.currentAnimation = 'moveupleft';
+        else if (moveRight) player.currentAnimation = 'moveright';
+        else if (moveLeft) player.currentAnimation = 'moveleft';
+        else if (moveUp) player.currentAnimation = 'moveup';
+        else if (moveDown) player.currentAnimation = 'movedown';
+        else {
             if (player.currentAnimation.includes('move')) {
-  if (player.currentAnimation === 'moveup') player.currentAnimation = 'stayup';
-  if (player.currentAnimation === 'moveleft') player.currentAnimation = 'stayleft';
-  if (player.currentAnimation === 'moveright') player.currentAnimation = 'stayright';
-  if (player.currentAnimation === 'movedown') player.currentAnimation = 'staydown';
-}
+                if (player.currentAnimation === 'moveup') player.currentAnimation = 'stayup';
+                if (player.currentAnimation === 'moveleft') player.currentAnimation = 'stayleft';
+                if (player.currentAnimation === 'moveright') player.currentAnimation = 'stayright';
+                if (player.currentAnimation === 'movedown') player.currentAnimation = 'staydown';
+            }
         }
     }
-if ((moveLeft || moveRight || moveUp || moveDown) && !inWater) {
-  playFootstepSound(); // Graj dźwięk kroków, gdy gracz się porusza
-} else if(moveLeft || moveRight || moveUp || moveDown ){
-stopFootstepSound();
-} else {
-  stopFootstepSound(); // Zatrzymaj dźwięk, gdy gracz stoi
-  
-}
+
+    if ((moveLeft || moveRight || moveUp || moveDown) && !inWater) {
+        playFootstepSound();
+    } else {
+        stopFootstepSound();
+    }
+
     // Obsługa animacji klatek
     player.frameCounter++;
     if (player.frameCounter >= player.frameSpeed) {
-      player.frameIndex = (player.frameIndex + 1) % player.textures[player.currentAnimation].length;
-      player.frameCounter = 0;
+        player.frameIndex = (player.frameIndex + 1) % player.textures[player.currentAnimation].length;
+        player.frameCounter = 0;
     }
 
-    // Ustawienie nowej tekstury gracza
+    // Ładowanie nowej tekstury gracza
     let newTexture = new Image();
     newTexture.src = player.textures[player.currentAnimation][player.frameIndex];
 
     newTexture.onload = function() {
-      player.texture = newTexture;
+        player.texture = newTexture;
+    };
+
+    newTexture.onerror = function() {
+        console.warn(`Failed to load texture: ${newTexture.src}`);
+        // Opcjonalnie ustaw teksturę zastępczą
+        // player.texture = defaultTexture;
     };
 }
+
+function drawPlayer() {
+    if (player.texture && player.texture.complete && player.texture.naturalWidth > 0) {
+        ctx.drawImage(player.texture, player.x, player.y, player.width, player.height);
+    } else {
+        console.warn('Player texture not available.');
+        // Opcjonalnie narysuj teksturę zastępczą
+        // ctx.drawImage(defaultTexture, player.x, player.y, player.width, player.height);
+    }
+}
+
 
 
 // Tablica z plikami muzycznymi
