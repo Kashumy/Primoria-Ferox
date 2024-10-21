@@ -585,7 +585,7 @@ function canPlaceWater(blocks, x, y) {
 
 function drawTreesBelowPlayer(trees) {
     trees.forEach(tree => {
-        if (textures[tree.type]) { // Sprawdzenie, czy tekstura istnieje
+        if (textures[tree.type].complete) { // Sprawdzenie, czy tekstura istnieje
             ctx.drawImage(textures[tree.type], tree.x, tree.y, blockSize, blockSize);
         } else {
              
@@ -595,7 +595,7 @@ function drawTreesBelowPlayer(trees) {
 
 function drawTreesAbovePlayer(trees) {
     trees.forEach(tree => {
-        if (textures[tree.type]) { // Sprawdzenie, czy tekstura istnieje
+        if (textures[tree.type].complete) { // Sprawdzenie, czy tekstura istnieje
             ctx.drawImage(textures[tree.type], tree.x, tree.y, blockSize, blockSize);
         } else {
              
