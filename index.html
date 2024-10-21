@@ -61,10 +61,10 @@
 
 <div style="position: absolute; top:0; left:0; z-index: 9999999999999999999999999999999999999999; background: black; color: white;" id="ggsvbdnfnnfnnxkrgjgmvmfjrhf">
 </div><script>function scanvarible(data){document.getElementById('ggsvbdnfnnfnnxkrgjgmvmfjrhf').innerText=data }</script>
-
+<!--
 <script src="//cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script> 
-
+-->
 
 <canvas id="gameCanvas" width="300" height="300"></canvas>
 
@@ -198,10 +198,19 @@ function updatePlayerAnimation() {
         else if (moveDown) player.currentAnimation = 'movedown';
         else {
             if (player.currentAnimation.includes('move')) {
-                if (player.currentAnimation === 'moveup') player.currentAnimation = 'stayup';
-                if (player.currentAnimation === 'moveleft') player.currentAnimation = 'stayleft';
-                if (player.currentAnimation === 'moveright') player.currentAnimation = 'stayright';
-                if (player.currentAnimation === 'movedown') player.currentAnimation = 'staydown';
+                if (player.currentAnimation === 'moveup'){ player.currentAnimation = 'stayup';
+                lastDirection="up"
+                }
+                if (player.currentAnimation === 'moveleft'){ player.currentAnimation = 'stayleft';
+                lastDirection="left"
+                }
+                if (player.currentAnimation === 'moveright'){ player.currentAnimation = 'stayright';
+                lastDirection="right"
+                }
+                if (player.currentAnimation === 'movedown'){ player.currentAnimation = 'staydown';
+                lastDirection="down"
+                  
+                }
             }
         }
     }
@@ -228,9 +237,7 @@ function updatePlayerAnimation() {
     };
 
     newTexture.onerror = function() {
-        console.warn(`Failed to load texture: ${newTexture.src}`);
-        // Opcjonalnie ustaw teksturę zastępczą
-        // player.texture = defaultTexture;
+        
     };
 }
 
