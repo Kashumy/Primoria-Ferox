@@ -1,5 +1,61 @@
  <!DOCTYPE html>
 <html lang="pl" ondblclick="document.querySelector('html').requestFullscreen()">
+  
+      <style>
+      .health-bar-container {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 100px;
+        height: 10px;
+        background-color: #2E0000;
+        /* Ciemnoczerwone tło - pasek straconego życia */
+
+
+      }
+
+      .health-bar {
+        height: 100%;
+        background-color: #790000;
+        /* Czerwony - aktualne życie */
+        width: 100%;
+        /* Domyślnie pełne zdrowie */
+      }
+    </style>
+
+    <div class="health-bar-container">
+      <div id="healthBar" class="health-bar"></div>
+    </div>
+
+    <script>
+      let maxHP = 100; // Maksymalne HP
+      let currentHP = 100; // Aktualne HP
+
+      function updateHealth(amount) {
+        // Aktualizacja HP, ograniczenie do wartości od 0 do maxHP
+        currentHP = Math.max(0, Math.min(maxHP, currentHP + amount));
+
+        // Aktualizacja szerokości paska życia w procentach
+        const healthBar = document.getElementById('healthBar');
+        const healthPercentage = (currentHP / maxHP) * 100;
+        healthBar.style.width = healthPercentage + '%';
+        if(currentHP<=1){
+          currentHP=100;
+          chunks=[]
+          offsetX=0;
+          offsetY=0
+         showTextInCanvas("you died and lost progress ")
+         const healthBar = document.getElementById('healthBar');
+const healthPercentage = (currentHP / maxHP) * 100;
+healthBar.style.width = healthPercentage + '%';
+renderedEnemies=[]
+nightpower=0
+        }
+      }
+
+      // Inicjalizacja: ustawienie paska życia
+      updateHealth(0);
+    </script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -91,7 +147,7 @@ const inventory = {
     items: [], // Tablica przechowująca przedmioty
     maxSlots: 4, // Maksymalna liczba slotów w ekwipunku
 };
-const waterBuilder = ["stone_floor", "fiber_floor"];
+const waterBuilder = ["stone_floor", "fiber_floor","grasslayer","grass"];
 
 function isPlayerInWater() {
     let isInWater = false;
@@ -369,6 +425,9 @@ const textureSources = {
 "birch-powder": "./birch-powder.png",
 torch:"./torch.png", 
 ignited_fiber  :"./embered_fiber.png",
+log_floor  :"./log_floor.png",
+stoneshovel  :"./shovel.png",
+grasslayer  :"./grass.png",
 };
 
 const animatedTextures = {
@@ -421,7 +480,7 @@ let islands = []; // Tablica przechowująca dane o wygenerowanych wyspach
 
 function generateRandomIsland(x, y) {
   const islandChance = 0.03; // Szansa na wygenerowanie nowej wyspy
-  const minDistance = 3000; // Minimalna odległość, po której mogą zacząć się generować wyspy
+  const minDistance = 2000; // Minimalna odległość, po której mogą zacząć się generować wyspy
   const distanceFromCenter = Math.sqrt(x ** 2 + y ** 2);
 
   // Sprawdzamy, czy już istnieje wyspa w pobliżu
@@ -734,10 +793,178 @@ let smoothingFactor = 0.2; // Współczynnik gładkości (jak szybko gracz się 
 
 const targetFPS = 20; // Desired frames per second
 const frameDuration = 1000 / targetFPS; // Duration of each frame in milliseconds
+const enemyTextures = {
+    'bat': new Image(),
+    'bat1': new Image()
+};
+
+enemyTextures['bat'].src = './bat.png'; // Ścieżka do tekstury
+enemyTextures['bat1'].src = './bat1.png'; // Ścieżka do tekstury animacji
+
+let renderedEnemies = []; // Lista przechowująca aktualnie renderowanych przeciwników
+
+function Enemy(x, y, type) {
+    this.x = x;
+    this.y = y;
+    this.type = type;
+    this.width = 32; // szerokość przeciwnika
+    this.height = 32; // wysokość przeciwnika
+    this.speed = 4; // prędkość przeciwnika
+    this.animationFrame = 0; // Bieżąca klatka animacji
+    this.tickCount = 0; // Licznik klatek
+}
+
+
+// Przykład instancji przeciwnika
+
+
+
+const collisionRadius = 32; // Promień kolizji (w pikselach)
+
+const enemyDespawnDistance = 200; // Odległość w pikselach, po której nietoperz przestaje podążać
+const enemyDamageDistance = 1; // Odległość, w której nietoperz zadaje obrażenia graczowi
+const despawnTicks = 100; // Liczba ticków po której nietoperz się despawnuje, jeśli za daleko
+
+function updateEnemies() {
+    renderedEnemies = renderedEnemies.filter(enemy => {
+        // Zapamiętanie poprzedniej pozycji
+        const prevX = enemy.x;
+        const prevY = enemy.y;
+        const playerCenterX = offsetX + player.x + player.width / 2;
+        const playerCenterY = offsetY + player.y + player.height / 2;
+
+        // Obliczanie dystansu do gracza
+        const diffX = playerCenterX - enemy.x;
+        const diffY = playerCenterY - enemy.y;
+        const distanceToPlayer = Math.sqrt(diffX * diffX + diffY * diffY);
+
+        // Sprawdzenie, czy nietoperz jest w zasięgu 80px
+        if (distanceToPlayer < enemyDespawnDistance) {
+            // Resetowanie licznika despawn
+            enemy.despawnTickCount = 0;
+
+            // Poruszanie się w stronę gracza, jeśli w zasięgu
+            const moveX = (diffX / distanceToPlayer) * enemy.speed;
+            const moveY = (diffY / distanceToPlayer) * enemy.speed;
+
+            // Aktualizacja pozycji nietoperza
+            enemy.x += moveX;
+            enemy.y += moveY;
+        } else {
+            // Jeśli za daleko, zwiększamy licznik despawn
+            enemy.despawnTickCount = (enemy.despawnTickCount || 0) + 1;
+
+            // Usunięcie nietoperza po 100 tickach, jeśli za daleko
+            if (enemy.despawnTickCount > despawnTicks) {
+                return false; // Usuwamy nietoperza z tablicy
+            }
+        }
+
+        // Zadaj obrażenia graczowi, jeśli jest w odległości 50px
+                let collisionDetected = false;
+        const distanceFromPlayer = Math.sqrt(
+          (enemy.x - playerCenterX) ** 2 + (enemy.y - playerCenterY) ** 2
+        );
+
+
+        if (distanceFromPlayer <= 30) {
+          updateHealth(-1); // Zadaj obrażenia graczowi
+        }
+
+        for (let block of renderedBlocks) {
+          if (block.type === 'rock' || block.type === 'tree0' || block.type === 'birch0' || block.type === 'yew0' || block.type === 'pine0' || block.type === 'stone_wall' || block.type === 'log_wall' || block.type === 'water') {
+
+            // Obliczenie dystansu między środkiem nietoperza a środkiem bloku
+            let dx = (enemy.x + enemy.width / 2) - offsetX - (block.x + blockSize / 2);
+            let dy = (enemy.y + enemy.height / 2) - offsetY - (block.y + blockSize / 2);
+            let distanceToBlock = Math.sqrt(dx * dx + dy * dy);
+
+            // Jeśli odległość jest mniejsza niż promień kolizji, cofamy nietoperza
+            if (distanceToBlock < collisionRadius) {
+              collisionDetected = true;
+              break;
+            }
+          }
+        }
+
+        // Jeśli wykryto kolizję, cofamy nietoperza do poprzedniej pozycji
+        if (collisionDetected) {
+          enemy.x = prevX;
+          enemy.y = prevY;
+        }
+
+        // Animacja
+        enemy.tickCount++;
+        if (enemy.tickCount >= 5) { // Co 5 klatek
+            enemy.animationFrame = (enemy.animationFrame + 1) % 2; // Przełączenie klatki
+            enemy.tickCount = 0; // Resetowanie licznika klatek
+        }
+
+        return true; // Zatrzymujemy nietoperza
+    });
+}
+
+
+function drawEnemies() {
+    renderedEnemies.forEach(enemy => {
+        const enemyTexture = enemy.animationFrame === 0 ? enemyTextures['bat'] : enemyTextures['bat1'];
+        if (enemyTexture.complete && enemyTexture.naturalWidth > 0) {
+            // Rysujemy przeciwnika w odniesieniu do offsetX i offsetY (przewijanie świata)
+            ctx.drawImage(
+                enemyTexture, 
+                enemy.x - offsetX, // Przesunięcie pozycji X o offsetX
+                enemy.y - offsetY, // Przesunięcie pozycji Y o offsetY
+                enemy.width, 
+                enemy.height
+            );
+        }
+    });
+}
+
+
+
 
 function update() {
     const startTime = performance.now(); // Get the current time at the start of the update
     updateDayNightCycle();
+    
+
+
+    if(nightpower>=2){
+      if(Math.random()<=0.01){
+        let bat = new Enemy(8 * blockSize + offsetX, 8 * blockSize + offsetY, 'bat');
+        // Stała reprezentująca 10 bloków odległości
+const spawnDistance = 9* blockSize;
+
+// Funkcja tworzenia nietoperza w losowej pozycji względem gracza
+function spawnBatNearPlayer() {
+    let batX, batY;
+
+    // Losowanie pozycji X: 10 bloków w lewo (-) lub w prawo (+)
+    if (Math.random() >= 0.5) {
+        batX =  offsetX + spawnDistance; // 10 bloków w prawo od gracza
+    } else {
+        batX = offsetX - spawnDistance; // 10 bloków w lewo od gracza
+    }
+
+    // Losowanie pozycji Y: 10 bloków w górę (-) lub w dół (+)
+    if (Math.random() >= 0.5) {
+        batY = offsetY + spawnDistance; // 10 bloków w dół od gracza
+    } else {
+        batY = offsetY - spawnDistance; // 10 bloków w górę od gracza
+    }
+
+    // Tworzenie nowego nietoperza w wylosowanej pozycji
+    let bat = new Enemy(batX, batY, 'bat');
+    renderedEnemies.push(bat); // Dodanie nietoperza do listy renderowanych przeciwników
+}
+
+// Przykład wywołania funkcji (np. w regularnym interwale lub zdarzeniu)
+spawnBatNearPlayer();
+
+
+      }
+    }
     playerX = offsetX; // Gracz jest zawsze na środku ekranu
     playerY = offsetY;
 
@@ -811,7 +1038,8 @@ chunkPositions.forEach(chunk => {
 
     // Aktualizacja animacji i inne logiki gry
     updatePlayerAnimation();
-
+updateEnemies()
+drawEnemies()
     // Obliczanie czasu wykonania i czekanie na kolejną klatkę
     const endTime = performance.now();
     const timeTaken = endTime - startTime;
@@ -953,6 +1181,7 @@ function dropItemAtPlayerPosition(item) {
 
     updateInventory()
     updateCrafting()
+    
 }
 function buildBlockAtPosition(x, y, blockTypeToAdd) {
     let maxblocktorm = 0;
@@ -1114,6 +1343,40 @@ function igniteFiberAround(x, y, radius = 64) {
         }
     }
 }
+function removeBatAtPosition(x, y) {
+    // Pozycja gracza
+    const playerCenterX = offsetX + player.x + player.width / 2;
+    const playerCenterY = offsetY + player.y + player.height / 2;
+
+    // Sprawdzenie kolizji z każdym nietoperzem
+    renderedEnemies = renderedEnemies.filter(enemy => {
+        // Obliczenie odległości między kliknięciem a pozycją nietoperza
+        const dx = x - (enemy.x + enemy.width / 2) + offsetX;
+        const dy = y - (enemy.y + enemy.height / 2) + offsetY;
+        const distanceClick = Math.sqrt(dx * dx + dy * dy);
+
+        // Obliczenie odległości między graczem a nietoperzem
+        const distanceFromPlayer = Math.sqrt(
+            (enemy.x - playerCenterX) ** 2 + (enemy.y - playerCenterY) ** 2
+        );
+
+        // Jeśli odległość od kliknięcia jest mniejsza niż 64px i gracz jest w odległości 2 bloków od nietoperza, nietoperz może być usunięty
+        if (distanceClick <= 64 && distanceFromPlayer <= 94 && checkIfItems("pointed_stick", 1)) {
+            // Usuwamy nietoperza
+            return false;
+        }
+
+        // Jeśli nietoperz znajduje się bliżej niż 50px od gracza, zadaje obrażenia graczowi
+        if (distanceFromPlayer <= 50) {
+            updateHealth(-1);  // Zadaj obrażenia graczowi
+        }
+
+        // Zwracamy true, jeśli nietoperz ma pozostać na ekranie
+        return true;
+    });
+}
+
+
 
 canvas.addEventListener('click', (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -1124,7 +1387,8 @@ canvas.addEventListener('click', (e) => {
 
     const x = (Math.floor(scaledX / blockSize) * blockSize) + 2;
     const y = (Math.floor(scaledY / blockSize) * blockSize) + 2;
-
+    removeBatAtPosition(scaledX, scaledY); // Usuwamy nietoperza, jeśli kliknięto w jego obszar
+     
     console.log(`Click Position: (${x}, ${y})`);
 const blockTypes = ["stones", "rock", "sticks", "nettle", "kite", "tallgrass", "yellow", "violet", "treebark", "toadstool", "fern", "shiny", "blackberry","stick","fiber","stone_axe","handrill-kit","blackberry-fruit","woodboard","briar","kite"];
     // Sprawdzenie, jaki blok został kliknięty
@@ -1164,18 +1428,62 @@ if (checkBlockAtPosition(x, y, "blackberry")&& checkEmptySlots(0)) {
   blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
   return;
 }
-if (checkBlockAtPosition(x, y, "fireplow") && checkEmptySlots(0)) {
-    // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
-    blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
-    igniteFiberAround(x, y, 64);
-    return;
+if (checkBlockAtPosition(x, y, "blackberry-fruit") && checkEmptySlots(0)) {
+  if(currentHP>80){
+  addItem("blackberry-fruit", 1); // Zyskujesz 1 rock
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  removeBlockAtPosition(x, y, "blackberry-fruit");
+}else{
+  updateHealth(30)
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  removeBlockAtPosition(x, y, "blackberry-fruit");
 }
+  return;
+}
+if (checkBlockAtPosition(x, y, "briar-fruit") && checkEmptySlots(0)) {
+  if (currentHP > 70) {
+    addItem("briar-fruit", 1); // Zyskujesz 1 rock
+    blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+    removeBlockAtPosition(x, y, "briar-fruit");
+  } else {
+    updateHealth(40)
+    blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+    removeBlockAtPosition(x, y, "briar-fruit");
+  }
+  return;
+}
+if (checkBlockAtPosition(x, y, "fireplow") && checkEmptySlots(0)) {
+  // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
+  addItem("fireplow", 1);
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  removeBlockAtPosition(x, y, "fireplow");
+  igniteFiberAround(x, y, 64);
+  return;
+}
+if (checkBlockAtPosition(x, y, "grass") && checkEmptySlots(0) && checkIfItems("stoneshovel", 1)) {
+  // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  addItem("grasslayer", 1);
+  buildBlockAtPosition(x, y, "dirt");
+  return;
+}
+if (checkBlockAtPosition(x, y, "grasslayer") && checkEmptySlots(0) && checkIfItems("stoneshovel", 1)) {
+  // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  addItem("grasslayer", 1);
+  buildBlockAtPosition(x, y, "dirt");
+  return;
+}
+
 
 Object.keys(allItems).forEach(itemName => {
   if (checkBlockAtPosition(x, y, itemName) && checkEmptySlots(0)) {
+    if(itemName!=="blackberry-fruit"&&itemName!=="briar-fruit"&&itemName!=="grasslayer"){
     addItem(itemName, 1); // Dodajemy przedmiot o tej samej nazwie, co nazwa w allItems
     removeBlockAtPosition(x, y, itemName); // Usuwamy blok po kliknięciu
     return;
+      
+    }
   }
 });
 
@@ -1397,7 +1705,11 @@ image-rendering:pixelated;
     <script>
         var slots = 8;  // Max slots
         var allItems = { // Definicja tekstur przedmiotów
-            "fiber": "./fiber.png",
+"fiber": "./fiber.png",
+"grasslayer": "./grass.png",
+"stoneshovel": "./shovel.png",
+
+"log_floor": "./log_floor.png",
             "nettle": "./nettle.png",
             "bigrock": "./largerock.png",
             "stone": "./stones.png",
@@ -1434,16 +1746,18 @@ stone_floor: './stone_floor.png',
   dandelion: './dandelion.png',
   torch: './torch.png',
   ignited_fiber: './embered_fiber.png',
+  pointed_stick: './pointed_stick.png',
         };
 
         // Definicja receptur
         var recipes = {
 "fiber": ["treebark", "treebark"],
 "torch": ["resin", "stick","ignited_fiber"],
-"torch": ["resin", "longstick","ignited_fiber"],
+"log_floor": ["log", "log","log"],
 "sharpstone": ["stone","bigrock"],
 "fireplow": ["longstick", "woodboard"],
 "woodboard": ["log", "sharpstone"],
+"pointed_stick": ["longstick", "sharpstone"],
 "fireroll": ["fiber", "fiber","woodboard","woodboard","birch-powder"],
 "stone_floor": ["stone", "stone", "stone", "stone", "stone", "stone"],
 "fiber_floor": ["fiber", "fiber", "fiber", "fiber", "fiber", "fiber"],
@@ -1451,6 +1765,7 @@ stone_floor: './stone_floor.png',
 "stone_wall": ["bigrock", "bigrock", "bigrock", "bigrock","bigrock"],
 "cordage": ["fiber", "treebark"],
 "stone_axe": ["longstick", "sharpstone","cordage"],
+"stoneshovel": ["longstick", "sharpstone","cordage","cordage"],
         };
 
         var yourItems = [];  // Ekwipunek
@@ -1551,6 +1866,9 @@ function updateInventory() {
                 if (itemToRemove) {
                     dropItemAtPlayerPosition(itemToRemove);  // Umieść przedmiot na chunku
                     yourItems.splice(i, 1);  // Usuń przedmiot z ekwipunku
+                    updateInventory()
+                    updateCrafting()
+    
                     updateInventory();  // Odśwież ekwipunek
                 }
             });
@@ -1650,7 +1968,7 @@ function saveGameState() {
     localStorage.setItem('playerX', offsetX);
     localStorage.setItem('playerY', offsetY);
     localStorage.setItem('nightcycle', nightpower);
-
+localStorage.setItem('Hp', currentHP);
     // Zapisz przedmioty gracza
     localStorage.setItem('youritems', JSON.stringify(yourItems));
 
@@ -1666,6 +1984,8 @@ function loadGameState() {
     const storedPlayerX = localStorage.getItem('playerX');
     const storedPlayerY = localStorage.getItem('playerY');
     nightpower=localStorage.getItem('nightcycle')
+    currentHP=localStorage.getItem('Hp')||100
+    updateHealth(0)
     setTimeout(function (){
       increasing=true
     },5000)
