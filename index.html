@@ -21,6 +21,8 @@
             position: absolute;
             top:50vh;
             left:50vw;
+            width:auto;
+            height:100%;
            transform:translate(-50%,-50%);
             background-color: #87CEEB; /* Niebo */
             image-rendering: pixelated; /* Wyłącz antyaliasing */
@@ -365,8 +367,8 @@ const textureSources = {
 "stone_scyte": "./stone_scyte.png",
 "fireplow": "./fireplow.png",
 "birch-powder": "./birch-powder.png",
-torch:"./torch.png",
-
+torch:"./torch.png", 
+ignited_fiber  :"./embered_fiber.png",
 };
 
 const animatedTextures = {
@@ -902,6 +904,106 @@ requestAnimationFrame(mainLoop);
 
 // Start gry
 window.onload = update;
+function dropItemAtPlayerPosition(item) {
+    // Zaokrąglij pozycję gracza do siatki bloków 32x32
+    let playerX = Math.floor((offsetX + player.x) / blockSize) * blockSize;
+    let playerY = Math.floor((offsetY + player.y) / blockSize) * blockSize;
+
+    // Zmiana pozycji na podstawie ostatniego kierunku
+    switch (lastDirection) {
+        case 'up':
+            playerY -= blockSize;
+            break;
+        case 'down':
+            playerY += blockSize;
+            break;
+        case 'left':
+            playerX -= blockSize;
+            break;
+        case 'right':
+            playerX += blockSize;
+            break;
+        case 'right-up':
+            playerX += blockSize;
+            playerY -= blockSize;
+            break;
+        case 'left-up':
+            playerX -= blockSize;
+            playerY -= blockSize;
+            break;
+    }
+
+    // Dodanie nowego bloku z zaokrąglonymi współrzędnymi
+    const newBlock = {
+        x: playerX / blockSize,  // Skala bloków
+        y: playerY / blockSize,
+        type: item
+    };
+
+    // Klucz chunka na podstawie współrzędnych bloków
+    const chunkKey = `${Math.floor(newBlock.x)},${Math.floor(newBlock.y)}`;
+
+    // Jeśli chunk nie istnieje, stwórz go
+    if (!chunks[chunkKey]) {
+        chunks[chunkKey] = [];
+    }
+
+    // Dodanie bloku do chunka
+    chunks[chunkKey].push({x:0,y:0,type:item});
+
+    updateInventory()
+    updateCrafting()
+}
+function buildBlockAtPosition(x, y, blockTypeToAdd) {
+    let maxblocktorm = 0;
+    const globalX = x + offsetX;
+    const globalY = y + offsetY;
+
+    const snapToBlockGrid = (value) => Math.floor(value / blockSize) * blockSize;
+    const snappedGlobalX = snapToBlockGrid(globalX);
+    const snappedGlobalY = snapToBlockGrid(globalY);
+
+    // Obliczamy chunk, do którego należy ten blok
+    const chunkX = Math.floor(snappedGlobalX / blockSize);
+    const chunkY = Math.floor(snappedGlobalY / blockSize);
+    const chunkKey = `${chunkX},${chunkY}`;
+
+    // Obliczamy odległość od gracza (offsetX, offsetY)
+    const distanceFromPlayer = Math.sqrt(
+        (snappedGlobalX - offsetX) ** 2 + (snappedGlobalY - offsetY) ** 2
+    );
+
+    // Sprawdzamy, czy odległość jest mniejsza niż 10 bloków
+    if (distanceFromPlayer > 10 * blockSize) {
+        return; // Jeśli blok jest poza zasięgiem, przerywamy
+    }
+
+    // Sprawdzenie, czy chunk istnieje
+    const chunkBlocks = chunks[chunkKey];
+    if (!chunkBlocks) {
+        // Jeśli chunk nie istnieje, stwórz go
+        chunks[chunkKey] = [];
+    }
+
+    // Sprawdzamy, czy w danym miejscu już istnieje blok
+    const blockExists = chunkBlocks.some(block => {
+        const blockGlobalX = block.x + (chunkX * blockSize);
+        const blockGlobalY = block.y + (chunkY * blockSize);
+
+        return (
+            blockGlobalX === snappedGlobalX &&
+            blockGlobalY === snappedGlobalY
+        );
+    });
+
+    // Dodajemy nowy blok, jeśli nie ma już bloku na tych współrzędnych
+    
+        chunks[chunkKey].push({ x: snappedGlobalX - (chunkX * blockSize), y: snappedGlobalY - (chunkY * blockSize), type: blockTypeToAdd });
+        console.log(`Dodano blok :)  ${blockTypeToAdd} na (${snappedGlobalX}, ${snappedGlobalY})`);
+
+}
+
+
 function removeBlockAtPosition(x, y, blockTypeToRemove) {
   let maxblocktorm=0
     const globalX = x + offsetX;
@@ -994,7 +1096,24 @@ function removeTree(x, y) {
    
 }
 
-
+function igniteFiberAround(x, y, radius = 64) {
+    // Przeglądamy otaczające bloki w promieniu radius
+    for (let dx = -radius; dx <= radius; dx += blockSize) {
+        for (let dy = -radius; dy <= radius; dy += blockSize) {
+            const newX = x + dx;
+            const newY = y + dy;
+            
+            // Sprawdź, czy blok w tej pozycji to "fiber"
+            if (checkBlockAtPosition(newX, newY, "fiber")) {
+                // Usuń blok "fiber"
+                removeBlockAtPosition(newX, newY, "fiber");
+                
+                // Zamień na "ignited_fiber"
+                buildBlockAtPosition(newX, newY, "ignited_fiber");
+            }
+        }
+    }
+}
 
 canvas.addEventListener('click', (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -1044,6 +1163,12 @@ if (checkBlockAtPosition(x, y, "blackberry")&& checkEmptySlots(0)) {
   
   blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
   return;
+}
+if (checkBlockAtPosition(x, y, "fireplow") && checkEmptySlots(0)) {
+    // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
+    blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+    igniteFiberAround(x, y, 64);
+    return;
 }
 
 Object.keys(allItems).forEach(itemName => {
@@ -1285,7 +1410,7 @@ image-rendering:pixelated;
             "briar-fruit": "./briar-fruit.png",
             "kite": "./kite.png",
             "resin": "./resin.png",
-            "woodboard": "./board.png",
+"woodboard": "./board.png","ignited_fiber": "./ignited_fiber.png",
 "handdrill-kit": "./handdrill.png",
 "fireroll-kit": "./fireroll.png",
 "cordage": "./cordage.png",
@@ -1308,12 +1433,15 @@ stone_floor: './stone_floor.png',
   yellow: './yellow.png',
   dandelion: './dandelion.png',
   torch: './torch.png',
+  ignited_fiber: './embered_fiber.png',
         };
 
         // Definicja receptur
         var recipes = {
-"fiber": ["treebark", "treebark"],"torch": ["stick", "fiber"],
-            "sharpstone": ["stone","bigrock"],
+"fiber": ["treebark", "treebark"],
+"torch": ["resin", "stick","ignited_fiber"],
+"torch": ["resin", "longstick","ignited_fiber"],
+"sharpstone": ["stone","bigrock"],
 "fireplow": ["longstick", "woodboard"],
 "woodboard": ["log", "sharpstone"],
 "fireroll": ["fiber", "fiber","woodboard","woodboard","birch-powder"],
@@ -1399,58 +1527,7 @@ stone_floor: './stone_floor.png',
         // Aktualizacja wyświetlania ekwipunku
         // Funkcja dodawania przedmiotu do aktualnej pozycji gracza
         
-   function dropItemAtPlayerPosition(item) {
-    // Zaokrąglij pozycję gracza do siatki bloków 32x32
-    let playerX = Math.floor((offsetX + player.x) / blockSize) * blockSize;
-    let playerY = Math.floor((offsetY + player.y) / blockSize) * blockSize;
-
-    // Zmiana pozycji na podstawie ostatniego kierunku
-    switch (lastDirection) {
-        case 'up':
-            playerY -= blockSize;
-            break;
-        case 'down':
-            playerY += blockSize;
-            break;
-        case 'left':
-            playerX -= blockSize;
-            break;
-        case 'right':
-            playerX += blockSize;
-            break;
-        case 'right-up':
-            playerX += blockSize;
-            playerY -= blockSize;
-            break;
-        case 'left-up':
-            playerX -= blockSize;
-            playerY -= blockSize;
-            break;
-    }
-
-    // Dodanie nowego bloku z zaokrąglonymi współrzędnymi
-    const newBlock = {
-        x: playerX / blockSize,  // Skala bloków
-        y: playerY / blockSize,
-        type: item
-    };
-
-    // Klucz chunka na podstawie współrzędnych bloków
-    const chunkKey = `${Math.floor(newBlock.x)},${Math.floor(newBlock.y)}`;
-
-    // Jeśli chunk nie istnieje, stwórz go
-    if (!chunks[chunkKey]) {
-        chunks[chunkKey] = [];
-    }
-
-    // Dodanie bloku do chunka
-    chunks[chunkKey].push({x:0,y:0,type:item});
-
-    updateInventory()
-    updateCrafting()
-}
-
-
+   
 // Aktualizacja wyświetlania ekwipunku z obsługą dblclick
 function updateInventory() {
     const slotsContainer = document.getElementById("slots");
