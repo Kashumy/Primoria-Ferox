@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="pl" ondblclick="document.querySelector('html').requestFullscreen()">
 <head>
     <meta charset="UTF-8">
@@ -366,7 +366,7 @@ const textureSources = {
 "fireplow": "./fireplow.png",
 "birch-powder": "./birch-powder.png",
 torch:"./torch.png",
-extinguished_torch :"./extinguished_torch.png", 
+
 };
 
 const animatedTextures = {
@@ -681,10 +681,16 @@ function drawChunks() {
                         anim.currentFrame = (anim.currentFrame + 1) % anim.frames.length;
                         anim.lastFrameTime = currentTime;
                     }
-                    ctx.drawImage(anim.frames[anim.currentFrame], x, y, blockSize, blockSize);
+                    if (anim.frames[anim.currentFrame] && anim.frames[anim.currentFrame].complete && anim.frames[anim.currentFrame].naturalWidth > 0) {
+    // Rysowanie animowanej tekstury
+    ctx.drawImage(anim.frames[anim.currentFrame], x, y, blockSize, blockSize);
+} 
                 } else {
                     // Statyczna tekstura
-                    ctx.drawImage(textures[block.type], x, y, blockSize, blockSize);
+                    if (textures[block.type] && textures[block.type].complete && textures[block.type].naturalWidth > 0) {
+    // Obraz jest poprawnie załadowany
+    ctx.drawImage(textures[block.type], x, y, blockSize, blockSize);
+} 
                 }
 
                 // Warunek: jeśli więcej niż 2 bloki w chunku, wyświetl tekst nad ostatnim blokiem
