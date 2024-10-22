@@ -364,6 +364,15 @@ const textures = {};
 // Definicja nazw tekstur i ich ścieżek
 const textureSources = {
     grass: './grass.png',
+    
+    clay: './clay.png',
+  clayblock1: './clayblock.png',
+  clayblock: './clayblock.png',
+  brick: './brick.png',
+  brickwall: './brickwall.png',
+  brickfloor: './brickfloor.png',
+  ash: './ash1.png',
+  ashfloor: './ashblock.png',
     dirt: './dirt.png',
     tree0: './tree0.png',
     tree1: './tree1.png',
@@ -417,7 +426,7 @@ const textureSources = {
             "resin": "./resin.png",
          
 "handdrill-kit": "./handdrill.png",
-"fireroll-kit": "./fireroll.png",
+"fireroll": "./fireroll.png",
 "cordage": "./cordage.png",
 "dowel": "./dowel.png",
 "log": "./tree0.png",
@@ -431,6 +440,7 @@ ignited_fiber  :"./embered_fiber.png",
 log_floor  :"./log_floor.png",
 stoneshovel  :"./shovel.png",
 grasslayer  :"./grass.png",
+decrafter  :"./decrafter.png",
 };
 
 const animatedTextures = {
@@ -487,7 +497,7 @@ let islands = []; // Tablica przechowująca dane o wygenerowanych wyspach
 
 function generateRandomIsland(x, y) {
   const islandChance = 0.03; // Szansa na wygenerowanie nowej wyspy
-  const minDistance = 2000; // Minimalna odległość, po której mogą zacząć się generować wyspy
+  const minDistance = 1000; // Minimalna odległość, po której mogą zacząć się generować wyspy
   const distanceFromCenter = Math.sqrt(x ** 2 + y ** 2);
 
   // Sprawdzamy, czy już istnieje wyspa w pobliżu
@@ -500,9 +510,9 @@ function generateRandomIsland(x, y) {
 
   // Jeśli odległość od centrum przekracza minimalną i mamy losową szansę, tworzymy nową wyspę
   if (distanceFromCenter > minDistance && Math.random() < islandChance) {
-    const radius = Math.floor(Math.random() * 175) + 50; // Losowy promień od 50 do 225
-    const islandX = x + Math.floor(Math.random() * 500) - 250; // Losowe przesunięcie wyspy
-    const islandY = y + Math.floor(Math.random() * 500) - 250;
+    const radius = Math.floor(Math.random() * 375) + 50; // Losowy promień od 50 do 225
+    const islandX = x + Math.floor(Math.random() * 300) - 250; // Losowe przesunięcie wyspy
+    const islandY = y + Math.floor(Math.random() * 300) - 250;
 
     // Zapisujemy wyspę z jej centrum i promieniem
     islands.push({ x: islandX, y: islandY, radius: radius });
@@ -543,6 +553,7 @@ if (blockType === 'dirt' ||blockType === 'sand' || blockType === 'water') {
   blocks.push({ x: i * blockSize, y: j * blockSize, type: blockType });
 } else {
   // Default behavior for grass
+  
   blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
 
   // Add trees and other flora
@@ -1459,6 +1470,9 @@ function igniteFiberAround(x, y, radius = 64) {
                 
                 // Zamień na "ignited_fiber"
                 buildBlockAtPosition(newX, newY, "ignited_fiber");
+                return;
+            }else{
+              showTextInCanvas("there is no placed fiber around this friction kit")
             }
         }
     }
@@ -1484,7 +1498,10 @@ function removeBatAtPosition(x, y) {
         if (distanceClick <= 34 && distanceFromPlayer <= 64 && checkIfItems("pointed_stick", 1)) {
             // Usuwamy nietoperza
             return false;
-        }
+        }else if (distanceClick <= 34 && distanceFromPlayer <= 64 ) {
+
+  showTextInCanvas("oops. it seems like you doesn't have any weapon ")
+}
 
         // Jeśli nietoperz znajduje się bliżej niż 50px od gracza, zadaje obrażenia graczowi
         if (distanceFromPlayer <= 50) {
@@ -1512,6 +1529,15 @@ canvas.addEventListener('click', (e) => {
     console.log(`Click Position: (${x}, ${y})`);
 const blockTypes = ["stones", "rock", "sticks", "nettle", "kite", "tallgrass", "yellow", "violet", "treebark", "toadstool", "fern", "shiny", "blackberry","stick","fiber","stone_axe","handrill-kit","blackberry-fruit","woodboard","briar","kite"];
     // Sprawdzenie, jaki blok został kliknięty
+    if (checkBlockAtPosition(x, y, "clayblock") && checkEmptySlots(1)) {
+  // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
+  removeBlockAtPosition(x, y, "clayblock");
+  addItem("clay", 2);
+
+  buildBlockAtPosition(x, y, "dirt");
+
+  return;
+}
     if (checkBlockAtPosition(x, y, "stones")&& checkEmptySlots(0)) {
         addItem("stone", Math.random() < 0.5 ? 1 : 2);  // Możesz zdobyć 1 lub 2 kamienie
         
@@ -1601,9 +1627,25 @@ if (checkBlockAtPosition(x, y, "fireplow") && checkEmptySlots(0)) {
   // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
   addItem("fireplow", 1);
   blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  if(Math.random()>0.2){
   removeBlockAtPosition(x, y, "fireplow");
   igniteFiberAround(x, y, 64);
   return;
+}else{
+  showTextInCanvas("fiber doesn't ignited try again ")
+}
+}
+if (checkBlockAtPosition(x, y, "fireroll") && checkEmptySlots(0)) {
+  // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
+  addItem("fireroll", 1);
+  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  if(Math.random()>0.9){
+  removeBlockAtPosition(x, y, "fireroll");
+  igniteFiberAround(x, y, 64);
+  return;
+}else{
+  showTextInCanvas("fiber doesn't ignited try again ")
+}
 }
 
 if (checkBlockAtPosition(x, y, "grasslayer") && checkEmptySlots(0) && checkIfItems("stoneshovel", 1)) {
@@ -1617,7 +1659,7 @@ if (checkBlockAtPosition(x, y, "grasslayer") && checkEmptySlots(0) && checkIfIte
 
 Object.keys(allItems).forEach(itemName => {
   if (checkBlockAtPosition(x, y, itemName) && checkEmptySlots(0)) {
-    if(itemName!=="blackberry-fruit"&&itemName!=="briar-fruit"&&itemName!=="grasslayer"){
+    if(itemName!=="blackberry-fruit"&&itemName!=="briar-fruit"&&itemName!=="grasslayer"&&itemName!=="clayblock"){
     addItem(itemName, 1); // Dodajemy przedmiot o tej samej nazwie, co nazwa w allItems
     removeBlockAtPosition(x, y, itemName); // Usuwamy blok po kliknięciu
     return;
@@ -1659,9 +1701,14 @@ if (["birch0"].some(tree => checkBlockAtPosition(x, y, tree))) {
   // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
   removeBlockAtPosition(x, y, "grass");
   addItem("grasslayer", 1);
-  buildBlockAtPosition(x, y, "dirt");
+  if(Math.random()<0.2){
+  buildBlockAtPosition(x, y, "clayblock");
+  }else{
+    buildBlockAtPosition(x, y, "dirt");
+  }
   return;
 }
+
 });
 
 // Funkcja sprawdzająca, czy na danej pozycji znajduje się blok typu 'type'
@@ -1790,8 +1837,8 @@ function checkEmptySlots(number) {
     display: flex;
     flex-direction: column;
     font-size: 10px;
-    margin-bottom: 20px;
-    max-height: 150px;
+    margin-bottom: 0px;
+    max-height: 250px;
     overflow-y: auto; /* W przypadku dużej liczby receptur, pojawi się przewijanie */
 }
 
@@ -1835,9 +1882,11 @@ image-rendering:pixelated;
     </style>
 
     <div class="inventory-container"  id="inventory">
-      <div onclick="saveGameState();" style="position:absolute; top:60px; right:0 ; background:#666666; " class="hover">save game</div>
+      <div onclick="saveGameState();" style="position:absolute; top:60px; right:0 ; background:#666666;z-index: 999; " class="hover">save game</div>
       
-      <div onclick="loadGameState();"  style="position:absolute; top:90px; right:0 ; background:#666666;"class="hover">load game</div>
+      <div onclick="loadGameState();"  style="position:absolute; top:90px; right:0 ;z-index: 999; background:#666666;"class="hover">load game</div>
+      <div onclick="toggleAllRecipes()"  style="position:absolute; top:120px; right:0 ; z-index: 999; background:#666666;"class="hover">Show all</div>
+      
         <button class="close-button" onclick="closeInventory()">Close</button>
 
         <div class="crafting-recipes" id="crafting">
@@ -1853,9 +1902,16 @@ image-rendering:pixelated;
         var slots = 8;  // Max slots
         var allItems = { // Definicja tekstur przedmiotów
 "fiber": "./fiber.png",
+decrafter  :"./decrafter.png",
 "grasslayer": "./grass.png",
 "stoneshovel": "./shovel.png",
-
+clay: './clay.png',
+clayblock: './clayblock.png',
+brick: './brick.png',
+brickwall: './brickwall.png',
+brickfloor: './brickfloor.png',
+ash: './ash1.png',
+ashfloor: './ashblock.png',
 "log_floor": "./log_floor.png",
             "nettle": "./nettle.png",
             "bigrock": "./largerock.png",
@@ -1871,7 +1927,7 @@ image-rendering:pixelated;
             "resin": "./resin.png",
 "woodboard": "./board.png","ignited_fiber": "./ignited_fiber.png",
 "handdrill-kit": "./handdrill.png",
-"fireroll-kit": "./fireroll.png",
+"fireroll": "./fireroll.png",
 "cordage": "./cordage.png",
 "dowel": "./dowel.png",
 "log": "./tree0.png",
@@ -1903,6 +1959,7 @@ stone_floor: './stone_floor.png',
         var recipes = {
 "fiber": ["treebark", "treebark"],
 "torch": ["resin", "stick","ignited_fiber"],
+"decrafter": ["stone", "woodboard","woodboard","stone","woodboard"],
 "campfire": ["stone", "stone","ignited_fiber"],
 "log_floor": ["log", "log","log"],
 "sharpstone": ["stone","bigrock"],
@@ -1918,11 +1975,58 @@ stone_floor: './stone_floor.png',
 "stone_axe": ["longstick", "sharpstone","cordage"],
 "stoneshovel": ["longstick", "sharpstone","cordage","cordage"],
 "thistleroot": ["thistle"],
+"brickwall": ["clay", "brick", "brick", "brick"],
+"brickfloor": ["clay", "brick", "brick", "brick"],
+"clayblock": ["clay", "clay"],
+"ashfloor": ["ash", "ash","ash"],
         };
+        var canbedecrafted=["brickwall","clayblock","ashfloor","cordage","fiber","fireplow","stone_wall","fiber_floor","torch","campfire","brickfloor","fireroll","decrafter","log_floor","log_wall","sharpstone","pointed_stick","thistleroot","woodboard"]
 var campfirerecipes = {
   "cooked_thistleroot": ["thistleroot"],
+  "brick": ["clay","ash"],
+  "brickwall": ["clay", "brick", "brick", "brick"],
+"brickfloor": ["clay", "brick", "brick", "brick"],
+"ash": ["stick"],
 }
         var yourItems = [];  // Ekwipunek
+function isNearDecrafter(playerX, playerY) {
+    const decrafterRange = 3 * blockSize;  // Zasięg 3 bloków od dekratora
+
+    // Pozycje środka gracza
+    const playerCenterX = player.x + offsetX/32 + player.width * 2;
+    const playerCenterY = player.y + offsetY/32 + player.height * 2;
+
+    let nearDecrafter = false;
+
+    // Iteracja przez zrenderowane bloki
+    renderedBlocks.forEach(block => {
+        if (block.type === 'decrafter') {
+            const distance = Math.sqrt(
+                (block.x + blockSize / 2 - playerCenterX) ** 2 +
+                (block.y + blockSize / 2 - playerCenterY) ** 2
+            );
+
+            if (distance <= decrafterRange) {
+                nearDecrafter = true;
+            }
+        }
+    });
+
+    return nearDecrafter;
+}
+function deconstructItem(item) {
+    const recipe = recipes[item];
+    deleteItems(item, 1)
+    if (recipe) {
+        // Rozkładamy przedmiot na komponenty i umieszczamy je na pozycji gracza
+        recipe.forEach(material => {
+            dropItemAtPlayerPosition(material);  // Upuść materiał na pozycję gracza
+        });
+        console.log(item + " has been deconstructed into its components.");
+    } else {
+        console.log("This item cannot be deconstructed.");
+    }
+}
 
         // Otwórz ekwipunek
         function openInventory() {
@@ -2094,25 +2198,43 @@ const playerCenterY = player.y + offsetY/32 + player.height * 2;
     return nearCampfire;
 }
 
+let showAllRecipes = false;  // Flaga kontrolująca tryb "pokazania wszystkich receptur"
+
+function toggleAllRecipes() {
+    showAllRecipes = !showAllRecipes;  // Przełącza tryb
+    updateCrafting();  // Odświeża wyświetlanie crafting menu
+}
+
 function updateCrafting() {
     const craftingContainer = document.getElementById("crafting");
     craftingContainer.innerHTML = "";  // Czyszczenie receptur
 
-    let activeRecipes = { ...recipes }; // Zwykłe receptury
-    
-    // Jeśli gracz jest w pobliżu ogniska, dodaj specjalne receptury
-    if (isNearCampfire(offsetX, offsetY)) {
-        activeRecipes = { ...activeRecipes, ...campfirerecipes };
-         
+    let activeRecipes = { ...recipes };  // Zwykłe receptury
+
+    if (isNearCampfire(player.x, player.y)) {
+        activeRecipes = { ...activeRecipes, ...campfirerecipes };  // Dodaj campfire recipes jeśli w pobliżu ogniska
     }
 
     for (const recipeName in activeRecipes) {
-        if (canCraft(activeRecipes[recipeName])) {
-            const recipeDiv = document.createElement("div");
-            recipeDiv.classList.add("recipe");
+        let canCraftRecipe = canCraft(activeRecipes[recipeName]);
 
+        // Tworzenie div receptury
+        const recipeDiv = document.createElement("div");
+        recipeDiv.classList.add("recipe");
+
+        // Przezroczystość dla receptur, których nie można wykonać
+        if (!canCraftRecipe && showAllRecipes) {
+            recipeDiv.style.opacity = "0.5";  // Ustaw przezroczystość
+        }
+
+        // Jeśli jesteśmy w trybie pokazania wszystkich receptur, zezwól na wyświetlenie wszystkiego
+        if (canCraftRecipe || showAllRecipes) {
             recipeDiv.addEventListener("click", function() {
-                craftItem(recipeName);
+                if (canCraftRecipe) {  // Craftowanie działa tylko, jeśli można wykonać przedmiot
+                    craftItem(recipeName);
+                } else {
+                    console.log(`Nie masz wystarczających przedmiotów, aby stworzyć ${recipeName}`);
+                }
             });
 
             const recipeImg = document.createElement("img");
@@ -2147,7 +2269,35 @@ function updateCrafting() {
             craftingContainer.appendChild(recipeDiv);
         }
     }
+    
+    // Dekonstrukcja (dodana, jeśli jesteś blisko decraftera)
+    if (isNearDecrafter(player.x, player.y)) {
+        craftingContainer.innerHTML = "<h3>Deconstruction Menu</h3>";
+
+        canbedecrafted.forEach(item => {
+            if (yourItems.includes(item)) {
+                const recipeDiv = document.createElement("div");
+                recipeDiv.classList.add("recipe");
+
+                recipeDiv.addEventListener("click", function() {
+                    deconstructItem(item);  // Rozkładaj przedmiot na komponenty
+                });
+
+                const recipeImg = document.createElement("img");
+                recipeImg.src = allItems[item];
+                recipeDiv.appendChild(recipeImg);
+
+                const recipeNameDiv = document.createElement("div");
+                recipeNameDiv.classList.add("recipe-name");
+                recipeNameDiv.innerText = `Deconstruct: ${item}`;
+
+                recipeDiv.appendChild(recipeNameDiv);
+                craftingContainer.appendChild(recipeDiv);
+            }
+        });
+    }
 }
+
 window.setInterval(updateCrafting,2000)
         // Dodaj przykładowe przedmioty do ekwipunku
         
@@ -2179,14 +2329,15 @@ function loadGameState() {
     const storedPlayerY = localStorage.getItem('playerY');
     nightpower=localStorage.getItem('nightcycle')
     if(localStorage.getItem('Hp')){
-    currentHP=parseInt(localStorage.getItem('Hp'))
+      if(localStorage.getItem('Hp')!==null){
+    currentHP=parseFloat(localStorage.getItem('Hp'))
     
             // Aktualizacja szerokości paska życia w procentach
         const healthBar = document.getElementById('healthBar');
         const healthPercentage = (currentHP / maxHP) * 100;
         healthBar.style.width = healthPercentage + '%';
  
-}
+}}
     
     setTimeout(function (){
       increasing=true
