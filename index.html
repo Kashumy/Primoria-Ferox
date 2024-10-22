@@ -695,6 +695,7 @@ let renderedBlocks = []; // Przechowywanie bloków widocznych na ekranie
 let nightpower = 0;  // Początkowa wartość (dzień)
 const maxNightpower = 3;  // Maksymalna wartość (pełna noc)
 let dayNightCycleSpeed = 0.0001;  // Prędkość cyklu dnia i nocy (można dostosować)
+let dayNightCycleSpeed2 = 0.0002;  // Prędkość cyklu dnia i nocy (można dostosować)
 let increasing = true;  // Kontroluje, czy nightpower wzrasta (noc) czy maleje (dzień)
 function updateDayNightCycle() {
     if (increasing) {
@@ -704,7 +705,7 @@ function updateDayNightCycle() {
             increasing = false;  // Zacznij zmniejszać (dzień)
         }
     } else {
-        nightpower -= dayNightCycleSpeed;
+        nightpower -= dayNightCycleSpeed2;
         if (nightpower <= 0) {
             nightpower = 0;
             increasing = true;  // Zacznij zwiększać (noc)
@@ -746,7 +747,7 @@ for (const block of blocks) {
 }
 
 let chunkPositions = []; // Dodajemy do przechowywania pozycji chunków
-var dontcount = ["dirt", "grass", "tallgrass", "yellow", "dandelion", "violet","tree0","pine0","birch0","tree1","pine1","birch1","tree2","pine2","birch2"];
+var dontcount = ["dirt", "grass", "tallgrass", "yellow", "dandelion", "violet","tree0","pine0","birch0","tree1","pine1","birch1","tree2","pine2","birch2","grasslayer","clayblock","ashfloor","shine","shiny","log_floor","log_wall","log","stone_floor","stone_wall","brickwall","brickfloor"];
 
 function drawChunks() {
     const startX = Math.floor(offsetX / blockSize);
@@ -1540,14 +1541,14 @@ function igniteFiberAround(x, y, radius = 64) {
 }
 function removeBatAtPosition(x, y) {
     // Pozycja gracza
-    const playerCenterX = offsetX + player.x + player.width / 2;
-    const playerCenterY = offsetY + player.y + player.height / 2;
+    const playerCenterX = offsetX + player.x + player.width ;
+    const playerCenterY = offsetY + player.y + player.height ;
 
     // Sprawdzenie kolizji z każdym nietoperzem
     renderedEnemies = renderedEnemies.filter(enemy => {
         // Obliczenie odległości między kliknięciem a pozycją nietoperza
-        const dx = x - (enemy.x + enemy.width / 2) + offsetX;
-        const dy = y - (enemy.y + enemy.height / 2) + offsetY;
+        const dx = x - (enemy.x + enemy.width ) + offsetX;
+        const dy = y - (enemy.y + enemy.height ) + offsetY;
         const distanceClick = Math.sqrt(dx * dx + dy * dy);
 
         // Obliczenie odległości między graczem a nietoperzem
@@ -2051,11 +2052,11 @@ var campfirerecipes = {
 }
         var yourItems = [];  // Ekwipunek
 function isNearDecrafter(playerX, playerY) {
-    const decrafterRange = 3 * blockSize;  // Zasięg 3 bloków od dekratora
+    const decrafterRange = 2 * blockSize;  // Zasięg 3 bloków od dekratora
 
     // Pozycje środka gracza
-    const playerCenterX = player.x + offsetX/32 + player.width * 2;
-    const playerCenterY = player.y + offsetY/32 + player.height * 2;
+    const playerCenterX = player.x + (offsetX/32) + player.width ;
+    const playerCenterY = player.y + (offsetY/32 )+ player.height ;
 
     let nearDecrafter = false;
 
@@ -2231,11 +2232,11 @@ function updateInventory() {
         }
         
 function isNearCampfire(playerX, playerY) {
-    const campfireRange = 3 * blockSize; // Zasięg 2 bloków od ogniska
+    const campfireRange = 2 * blockSize; // Zasięg 2 bloków od ogniska
     
     // Pozycje środka gracza
-    const playerCenterX = player.x + offsetX/32 + player.width * 2;
-const playerCenterY = player.y + offsetY/32 + player.height * 2;
+    const playerCenterX = player.x + offsetX/32 + player.width ;
+const playerCenterY = player.y + offsetY/32 + player.height ;
     
     let nearCampfire = false;
 
@@ -2274,6 +2275,7 @@ function updateCrafting() {
 
     if (isNearCampfire(player.x, player.y)) {
         activeRecipes = { ...activeRecipes, ...campfirerecipes };  // Dodaj campfire recipes jeśli w pobliżu ogniska
+        craftingContainer.innerHTML = "<h3>Its really nice and hot</h3>";
     }
 
     for (const recipeName in activeRecipes) {
