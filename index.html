@@ -400,6 +400,8 @@ const textureSources = {
     stone_wall: './stone_wall.png',
     fiber_floor: './fiber_floor.png',
     log_wall: './woodblock.png',
+    thistleroot: './thistleroot.png',
+  cooked_thistleroot: './cooked_thistleroot.png',
 "blackberry-fruit": './blackberry-fruit.png',
 
     "fiber": "./fiber.png",
@@ -424,6 +426,7 @@ const textureSources = {
 "fireplow": "./fireplow.png",
 "birch-powder": "./birch-powder.png",
 torch:"./torch.png", 
+campfire:"./campfire.png",
 ignited_fiber  :"./embered_fiber.png",
 log_floor  :"./log_floor.png",
 stoneshovel  :"./shovel.png",
@@ -434,7 +437,11 @@ const animatedTextures = {
     torch: {
         frames: ['./torch.png', './torch2.png'], // Klatki animacji
         speed: 0.5  // Czas trwania jednej klatki (w sekundach)
-    }
+    },
+    campfire: {
+  frames: ['./campfire.png', './campfire2.png'], // Klatki animacji
+  speed: 1.5 // Czas trwania jednej klatki (w sekundach)
+   }
 };
 
 // Funkcja do ładowania tekstur, w tym animowanych
@@ -694,7 +701,7 @@ function updateDayNightCycle() {
     }
 }
 function isNearTorch(blocks, x, y) {
-    const radius = 1 * blockSize;  // Promień w pikselach, w którym szukamy pochodni
+    const radius = 2 * blockSize;  // Promień w pikselach, w którym szukamy pochodni
     for (const block of blocks) {
         if (block.type === 'torch') {
             const distX = Math.abs(block.x - x);
@@ -704,6 +711,26 @@ function isNearTorch(blocks, x, y) {
             }
         }
     }
+    const radius2 = 1 * blockSize; // Promień w pikselach, w którym szukamy pochodni
+for (const block of blocks) {
+  if (block.type === 'campfire') {
+    const distX = Math.abs(block.x - x);
+    const distY = Math.abs(block.y - y);
+    if (distX <= radius2 && distY <= radius2) {
+      return true; // Pochodnia jest w pobliżu
+    }
+  }
+}
+const radius3 = 0 * blockSize; // Promień w pikselach, w którym szukamy pochodni
+for (const block of blocks) {
+  if (block.type === 'ignited_fiber') {
+    const distX = Math.abs(block.x - x);
+    const distY = Math.abs(block.y - y);
+    if (distX <= radius3 && distY <= radius3) {
+      return true; // Pochodnia jest w pobliżu
+    }
+  }
+}
     return false;
 }
 
@@ -872,7 +899,7 @@ function updateEnemies() {
         }
 
         for (let block of renderedBlocks) {
-          if (block.type === 'rock' || block.type === 'tree0' || block.type === 'birch0' || block.type === 'yew0' || block.type === 'pine0' || block.type === 'stone_wall' || block.type === 'log_wall' || block.type === 'water') {
+          if (block.type === 'rock' || block.type === 'tree0' || block.type === 'birch0' || block.type === 'yew0' || block.type === 'pine0' || block.type === 'stone_wall' || block.type === 'log_wall'|| block.type === 'log'|| block.type === 'water') {
 
             // Obliczenie dystansu między środkiem nietoperza a środkiem bloku
             let dx = (enemy.x + enemy.width / 2) - offsetX - (block.x + blockSize / 2);
@@ -1015,6 +1042,8 @@ spawnBatNearPlayer();
 
     // Dodanie efektu ciemności nad każdym chunk'iem, jeśli w pobliżu nie ma pochodni
     // Dodanie efektu ciemności nad każdym chunk'iem, jeśli w pobliżu nie ma pochodni
+    updateEnemies()
+drawEnemies()
 chunkPositions.forEach(chunk => {
     if (!isNearTorch(renderedBlocks, chunk.x, chunk.y)) {
         // Ustawienie przezroczystości w zależności od nightpower
@@ -1038,8 +1067,7 @@ chunkPositions.forEach(chunk => {
 
     // Aktualizacja animacji i inne logiki gry
     updatePlayerAnimation();
-updateEnemies()
-drawEnemies()
+
     // Obliczanie czasu wykonania i czekanie na kolejną klatkę
     const endTime = performance.now();
     const timeTaken = endTime - startTime;
@@ -1136,11 +1164,19 @@ function dropItemAtPlayerPosition(item) {
     // Zaokrąglij pozycję gracza do siatki bloków 32x32
     let playerX = Math.floor((offsetX + player.x) / blockSize) * blockSize;
     let playerY = Math.floor((offsetY + player.y) / blockSize) * blockSize;
-if (item=="blackberry-fruit") {
+if (item == "blackberry-fruit") {
   if (currentHP > 80) {
-    
+
   } else {
-    updateHealth(30)
+    updateHealth(20)
+    return;
+  }
+}
+if (item == "cooked_thistleroot") {
+  if (currentHP > 60) {
+
+  } else {
+    updateHealth(40)
     return;
   }
 }
@@ -1153,10 +1189,10 @@ if (item == "kite") {
   }
 }
 if (item == "briar-fruit") {
-  if (currentHP > 70) {
+  if (currentHP > 80) {
 
   } else {
-    updateHealth(40)
+    updateHealth(10)
     return;
   }
 }
@@ -1243,19 +1279,79 @@ function buildBlockAtPosition(x, y, blockTypeToAdd) {
         const blockGlobalX = block.x + (chunkX * blockSize);
         const blockGlobalY = block.y + (chunkY * blockSize);
 
-        return (
-            blockGlobalX === snappedGlobalX &&
-            blockGlobalY === snappedGlobalY
-        );
+        // Jeżeli już istnieje blok dirt, przerwij dodawanie nowego dirta
+        if (blockGlobalX === snappedGlobalX && blockGlobalY === snappedGlobalY) {
+            if (block.type === "dirt" && blockTypeToAdd === "dirt") {
+                console.log("Nie można dodać bloku 'dirt' - już istnieje na tej pozycji.");
+                return true; // Blok istnieje, a typ to 'dirt'
+            }
+            return true; // Blok istnieje, ale nie jest to 'dirt'
+        }
+        return false;
     });
 
     // Dodajemy nowy blok, jeśli nie ma już bloku na tych współrzędnych
-    
-        chunks[chunkKey].push({ x: snappedGlobalX - (chunkX * blockSize), y: snappedGlobalY - (chunkY * blockSize), type: blockTypeToAdd });
+    if (!blockExists) {
+        chunks[chunkKey].push({ 
+            x: snappedGlobalX - (chunkX * blockSize), 
+            y: snappedGlobalY - (chunkY * blockSize), 
+            type: blockTypeToAdd 
+        });
         console.log(`Dodano blok :)  ${blockTypeToAdd} na (${snappedGlobalX}, ${snappedGlobalY})`);
+    }
+}
+function buildBlockAtPosition(x, y, blockTypeToAdd) {
+  let maxblocktorm = 0;
+  const globalX = x + offsetX;
+  const globalY = y + offsetY;
+
+  const snapToBlockGrid = (value) => Math.floor(value / blockSize) * blockSize;
+  const snappedGlobalX = snapToBlockGrid(globalX);
+  const snappedGlobalY = snapToBlockGrid(globalY);
+
+  // Obliczamy chunk, do którego należy ten blok
+  const chunkX = Math.floor(snappedGlobalX / blockSize);
+  const chunkY = Math.floor(snappedGlobalY / blockSize);
+  const chunkKey = `${chunkX},${chunkY}`;
+
+  // Obliczamy odległość od gracza (offsetX, offsetY)
+  const distanceFromPlayer = Math.sqrt(
+    (snappedGlobalX - offsetX) ** 2 + (snappedGlobalY - offsetY) ** 2
+  );
+
+  // Sprawdzamy, czy odległość jest mniejsza niż 10 bloków
+  if (distanceFromPlayer > 10 * blockSize) {
+    return; // Jeśli blok jest poza zasięgiem, przerywamy
+  }
+
+  // Sprawdzenie, czy chunk istnieje
+  const chunkBlocks = chunks[chunkKey];
+  if (!chunkBlocks) {
+    // Jeśli chunk nie istnieje, stwórz go
+    chunks[chunkKey] = [];
+  }
+
+  // Sprawdzamy, czy w danym miejscu już istnieje blok
+  const blockExists = chunkBlocks.some(block => {
+    const blockGlobalX = block.x + (chunkX * blockSize);
+    const blockGlobalY = block.y + (chunkY * blockSize);
+
+    if (blockGlobalX === snappedGlobalX && blockGlobalY === snappedGlobalY) {
+  if (block.type === "dirt" && blockTypeToAdd === "dirt") {
+    console.log("Nie można dodać bloku 'dirt' - już istnieje na tej pozycji.");
+    return true; // Blok istnieje, a typ to 'dirt'
+  }
+  return true; // Blok istnieje, ale nie jest to 'dirt'
+}
+return false;
+  });
+
+  // Dodajemy nowy blok, jeśli nie ma już bloku na tych współrzędnych
+
+  chunks[chunkKey].push({ x: snappedGlobalX - (chunkX * blockSize), y: snappedGlobalY - (chunkY * blockSize), type: blockTypeToAdd });
+  console.log(`Dodano blok :)  ${blockTypeToAdd} na (${snappedGlobalX}, ${snappedGlobalY})`);
 
 }
-
 
 function removeBlockAtPosition(x, y, blockTypeToRemove) {
   let maxblocktorm=0
@@ -1419,7 +1515,7 @@ const blockTypes = ["stones", "rock", "sticks", "nettle", "kite", "tallgrass", "
     if (checkBlockAtPosition(x, y, "stones")&& checkEmptySlots(0)) {
         addItem("stone", Math.random() < 0.5 ? 1 : 2);  // Możesz zdobyć 1 lub 2 kamienie
         
-  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  removeBlockAtPosition(x, y, "stones")
   return;
 
     }
@@ -1427,21 +1523,21 @@ const blockTypes = ["stones", "rock", "sticks", "nettle", "kite", "tallgrass", "
         const randomItem = Math.random() < 0.5 ? "stick" : (Math.random() < 0.5 ? "treebark" : "longstick");
         addItem(randomItem, 1);  // Możesz zdobyć stick, treebark lub longstick
         
-  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  removeBlockAtPosition(x, y, "sticks")
   return;
 
     }
     if (checkBlockAtPosition(x, y, "rock")&& checkEmptySlots(0)) {
         addItem("bigrock", 1);  // Zyskujesz 1 rock
         
-  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  removeBlockAtPosition(x, y, "rock")
   return;
 
     }
 if (checkBlockAtPosition(x, y, "briar")&& checkEmptySlots(0)) {
   addItem("briar-fruit", 1); // Zyskujesz 1 rock
   
-  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  removeBlockAtPosition(x, y, "briar")
   return;
 
 }
@@ -1449,17 +1545,17 @@ if (checkBlockAtPosition(x, y, "briar")&& checkEmptySlots(0)) {
 if (checkBlockAtPosition(x, y, "blackberry")&& checkEmptySlots(0)) {
   addItem("blackberry-fruit", 1); // Zyskujesz 1 rock
   
-  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  removeBlockAtPosition(x, y, "blackberry")
   return;
 }
 if (checkBlockAtPosition(x, y, "blackberry-fruit") && checkEmptySlots(0)) {
   if(currentHP>80){
   addItem("blackberry-fruit", 1); // Zyskujesz 1 rock
-  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  
   removeBlockAtPosition(x, y, "blackberry-fruit");
 }else{
-  updateHealth(30)
-  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  updateHealth(20)
+  
   removeBlockAtPosition(x, y, "blackberry-fruit");
 }
   return;
@@ -1467,23 +1563,36 @@ if (checkBlockAtPosition(x, y, "blackberry-fruit") && checkEmptySlots(0)) {
 if (checkBlockAtPosition(x, y, "kite") && checkEmptySlots(0)) {
   if (currentHP > 80) {
     addItem("kite", 1); // Zyskujesz 1 rock
-    blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+    
     removeBlockAtPosition(x, y, "kite");
   } else {
-    updateHealth(20)
-    blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+    updateHealth(10)
+    
     removeBlockAtPosition(x, y, "kite");
   }
   return;
 }
+if (checkBlockAtPosition(x, y, "cooked_thistleroot") && checkEmptySlots(0)) {
+  if (currentHP > 60) {
+    addItem("cooked_thistleroot", 1); // Zyskujesz 1 rock
+     
+    removeBlockAtPosition(x, y, "cooked_thistleroot");
+  } else {
+    updateHealth(40)
+     
+    removeBlockAtPosition(x, y, "cooked_thistleroot");
+  }
+  return;
+}
+
 if (checkBlockAtPosition(x, y, "briar-fruit") && checkEmptySlots(0)) {
   if (currentHP > 70) {
     addItem("briar-fruit", 1); // Zyskujesz 1 rock
-    blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+     
     removeBlockAtPosition(x, y, "briar-fruit");
   } else {
     updateHealth(40)
-    blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+     
     removeBlockAtPosition(x, y, "briar-fruit");
   }
   return;
@@ -1496,18 +1605,12 @@ if (checkBlockAtPosition(x, y, "fireplow") && checkEmptySlots(0)) {
   igniteFiberAround(x, y, 64);
   return;
 }
-if (checkBlockAtPosition(x, y, "grass") && checkEmptySlots(0) && checkIfItems("stoneshovel", 1)) {
-  // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
-  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
-  addItem("grasslayer", 1);
-  buildBlockAtPosition(x, y, "dirt");
-  return;
-}
+
 if (checkBlockAtPosition(x, y, "grasslayer") && checkEmptySlots(0) && checkIfItems("stoneshovel", 1)) {
   // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
-  blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+  removeBlockAtPosition(x, y, "grasslayer");
   addItem("grasslayer", 1);
-  buildBlockAtPosition(x, y, "dirt");
+  
   return;
 }
 
@@ -1550,6 +1653,14 @@ if (["birch0"].some(tree => checkBlockAtPosition(x, y, tree))) {
   } else {
     showTextInCanvas("you need a tool");
   }
+}
+
+  if (checkBlockAtPosition(x, y, "grass") && checkEmptySlots(0) && checkIfItems("stoneshovel", 1)) {
+  // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
+  removeBlockAtPosition(x, y, "grass");
+  addItem("grasslayer", 1);
+  buildBlockAtPosition(x, y, "dirt");
+  return;
 }
 });
 
@@ -1781,14 +1892,18 @@ stone_floor: './stone_floor.png',
   yellow: './yellow.png',
   dandelion: './dandelion.png',
   torch: './torch.png',
+  campfire: './campfire.png',
   ignited_fiber: './embered_fiber.png',
   pointed_stick: './pointed_stick.png',
+  thistleroot: './thistleroot.png',
+  cooked_thistleroot: './cooked_thistleroot.png',
         };
 
         // Definicja receptur
         var recipes = {
 "fiber": ["treebark", "treebark"],
 "torch": ["resin", "stick","ignited_fiber"],
+"campfire": ["stone", "stone","ignited_fiber"],
 "log_floor": ["log", "log","log"],
 "sharpstone": ["stone","bigrock"],
 "fireplow": ["longstick", "woodboard"],
@@ -1802,8 +1917,11 @@ stone_floor: './stone_floor.png',
 "cordage": ["fiber", "treebark"],
 "stone_axe": ["longstick", "sharpstone","cordage"],
 "stoneshovel": ["longstick", "sharpstone","cordage","cordage"],
+"thistleroot": ["thistle"],
         };
-
+var campfirerecipes = {
+  "cooked_thistleroot": ["thistleroot"],
+}
         var yourItems = [];  // Ekwipunek
 
         // Otwórz ekwipunek
@@ -1855,25 +1973,39 @@ stone_floor: './stone_floor.png',
 
         // Funkcja craftingu – usuwa wymagane przedmioty i dodaje crafted item
         function craftItem(item) {
-            const recipe = recipes[item];
-            let canCraft = true;
+    // Sprawdź, czy gracz jest w pobliżu ogniska, aby dodać campfirerecipes
+    let recipe = recipes[item];
 
-            // Sprawdzenie, czy mamy wszystkie potrzebne przedmioty
-            recipe.forEach(reqItem => {
-                if (!checkIfItems(reqItem, 1)) {
-                    canCraft = false;
-                }
-            });
+    // Jeśli gracz jest w pobliżu ogniska, przeszukaj również campfirerecipes
+    if (isNearCampfire(player.x, player.y)) {
+        recipe = recipe || campfirerecipes[item]; // Jeśli nie ma w recipes, sprawdź campfirerecipes
+    }
 
-            // Jeśli można stworzyć, usuń przedmioty i dodaj crafted item
-            if (canCraft) {
-                recipe.forEach(reqItem => deleteItems(reqItem, 1));
-                addItem(item, 1);
-                console.log(item + " crafted!");
-            } else {
-                console.log("Not enough items to craft " + item);
-            }
+    // Jeśli nie znaleziono receptury w żadnym z miejsc
+    if (!recipe) {
+        console.log(`Receptura dla przedmiotu "${item}" nie istnieje.`);
+        return; // Zakończ funkcję, jeśli nie ma receptury
+    }
+
+    let canCraft = true;
+
+    // Sprawdzenie, czy mamy wszystkie potrzebne przedmioty
+    recipe.forEach(reqItem => {
+        if (!checkIfItems(reqItem, 1)) {
+            canCraft = false;
         }
+    });
+
+    // Jeśli można stworzyć, usuń przedmioty i dodaj crafted item
+    if (canCraft) {
+        recipe.forEach(reqItem => deleteItems(reqItem, 1));
+        addItem(item, 1);
+        console.log(item + " crafted!");
+    } else {
+        console.log("Not enough items to craft " + item);
+    }
+}
+
 
         // Aktualizacja wyświetlania ekwipunku
         // Funkcja dodawania przedmiotu do aktualnej pozycji gracza
@@ -1932,65 +2064,91 @@ function updateInventory() {
             }
             return true;
         }
+        
+function isNearCampfire(playerX, playerY) {
+    const campfireRange = 3 * blockSize; // Zasięg 2 bloków od ogniska
+    
+    // Pozycje środka gracza
+    const playerCenterX = player.x + offsetX/32 + player.width * 2;
+const playerCenterY = player.y + offsetY/32 + player.height * 2;
+    
+    let nearCampfire = false;
 
-        // Aktualizacja wyświetlania receptur
-        function updateCrafting() {
+    // Iteracja przez zrenderowane bloki
+    renderedBlocks.forEach(block => {
+        if (block.type === 'campfire') {
+            // Obliczanie odległości między graczem a ogniskiem
+            
+            const distance = Math.sqrt(
+                (block.x + blockSize / 2 - playerCenterX) ** 2 +
+                (block.y + blockSize / 2 - playerCenterY) ** 2
+            );
+            
+            // Sprawdzanie, czy gracz jest w zasięgu ogniska
+            if (distance <= campfireRange) {
+                nearCampfire = true;
+            }
+        }
+    });
+
+    return nearCampfire;
+}
+
+function updateCrafting() {
     const craftingContainer = document.getElementById("crafting");
     craftingContainer.innerHTML = "";  // Czyszczenie receptur
 
-    for (const recipeName in recipes) {
-        if (canCraft(recipes[recipeName])) {
+    let activeRecipes = { ...recipes }; // Zwykłe receptury
+    
+    // Jeśli gracz jest w pobliżu ogniska, dodaj specjalne receptury
+    if (isNearCampfire(offsetX, offsetY)) {
+        activeRecipes = { ...activeRecipes, ...campfirerecipes };
+         
+    }
+
+    for (const recipeName in activeRecipes) {
+        if (canCraft(activeRecipes[recipeName])) {
             const recipeDiv = document.createElement("div");
             recipeDiv.classList.add("recipe");
 
-            // Ustawienie akcji na kliknięcie receptury
             recipeDiv.addEventListener("click", function() {
                 craftItem(recipeName);
             });
 
-            // Dodanie obrazka przedmiotu, który można stworzyć
             const recipeImg = document.createElement("img");
             recipeImg.src = allItems[recipeName];
             recipeDiv.appendChild(recipeImg);
 
-            // Dodanie opisu przedmiotu (np. "fiber: ")
             const recipeNameDiv = document.createElement("div");
             recipeNameDiv.classList.add("recipe-name");
             recipeNameDiv.innerText = `${recipeName}:`;
 
             recipeDiv.appendChild(recipeNameDiv);
 
-            // Tworzenie kontenera na wymagane przedmioty (w jednej linii)
             const itemsContainer = document.createElement("div");
             itemsContainer.style.display = "flex";
-            itemsContainer.style.flexWrap = "wrap"; // Pozwoli na zawijanie, gdy nie ma miejsca
+            itemsContainer.style.flexWrap = "wrap";
 
-            // Dodawanie obrazków i nazw wymaganych przedmiotów
-            recipes[recipeName].forEach(item => {
-                // Tworzenie obrazka wymaganego przedmiotu
+            activeRecipes[recipeName].forEach(item => {
                 const itemImg = document.createElement("img");
                 itemImg.src = allItems[item];
-                itemImg.style.width = "30px"; // Ustawienie szerokości obrazka
-                itemImg.style.marginRight = "5px"; // Odstęp od tekstu
+                itemImg.style.width = "30px";
+                itemImg.style.marginRight = "5px";
 
-                // Tworzenie nazwy przedmiotu
                 const itemName = document.createElement("span");
                 itemName.innerText = item;
-                itemName.style.marginRight = "15px"; // Dodanie odstępu po nazwie
+                itemName.style.marginRight = "15px";
 
-                // Dodanie obrazka i nazwy do kontenera
                 itemsContainer.appendChild(itemImg);
                 itemsContainer.appendChild(itemName);
             });
 
-            // Dodanie kontenera do receptury
             recipeDiv.appendChild(itemsContainer);
-
             craftingContainer.appendChild(recipeDiv);
         }
     }
 }
-
+window.setInterval(updateCrafting,2000)
         // Dodaj przykładowe przedmioty do ekwipunku
         
         // Otwórz ekwipunek przy starcie gry
