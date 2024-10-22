@@ -241,10 +241,10 @@ function updatePlayerAnimation() {
 
     // Logika wyboru animacji
     if (inWater) {
-        if (moveRight) player.currentAnimation = 'inwater_moveright';
-        else if (moveLeft) player.currentAnimation = 'inwater_moveleft';
-        else if (moveUp) player.currentAnimation = 'inwater_moveup';
-        else if (moveDown) player.currentAnimation = 'inwater_movedown';
+        if (moveRight) {player.currentAnimation = 'inwater_moveright';lastDirection="right"}
+        else if (moveLeft){ player.currentAnimation = 'inwater_moveleft';lastDirection="left"}
+        else if (moveUp) {player.currentAnimation = 'inwater_moveup';lastDirection="up"}
+        else if (moveDown) {player.currentAnimation = 'inwater_movedown';lastDirection="down"}
         playerSpeed = waterspeed;
     } else {
         playerSpeed = norspeed;
@@ -746,6 +746,7 @@ for (const block of blocks) {
 }
 
 let chunkPositions = []; // Dodajemy do przechowywania pozycji chunków
+var dontcount = ["dirt", "grass", "tallgrass", "yellow", "dandelion", "violet","tree0","pine0","birch0","tree1","pine1","birch1","tree2","pine2","birch2"];
 
 function drawChunks() {
     const startX = Math.floor(offsetX / blockSize);
@@ -789,19 +790,20 @@ function drawChunks() {
                         anim.lastFrameTime = currentTime;
                     }
                     if (anim.frames[anim.currentFrame] && anim.frames[anim.currentFrame].complete && anim.frames[anim.currentFrame].naturalWidth > 0) {
-    // Rysowanie animowanej tekstury
-    ctx.drawImage(anim.frames[anim.currentFrame], x, y, blockSize, blockSize);
-} 
+                        // Rysowanie animowanej tekstury
+                        ctx.drawImage(anim.frames[anim.currentFrame], x, y, blockSize, blockSize);
+                    }
                 } else {
                     // Statyczna tekstura
                     if (textures[block.type] && textures[block.type].complete && textures[block.type].naturalWidth > 0) {
-    // Obraz jest poprawnie załadowany
-    ctx.drawImage(textures[block.type], x, y, blockSize, blockSize);
-} 
+                        // Obraz jest poprawnie załadowany
+                        ctx.drawImage(textures[block.type], x, y, blockSize, blockSize);
+                    }
                 }
 
-                // Warunek: jeśli więcej niż 2 bloki w chunku, wyświetl tekst nad ostatnim blokiem
-                if (blocks.length > 5 && index === blocks.length - 1) {
+                // Warunek: jeśli więcej niż 2 bloki w chunku, wyświetl tekst nad ostatnim blokiem,
+                // ale pomijamy bloki, których typ jest w tablicy `dontcount`
+                if (blocks.length > 3 && index === blocks.length - 1 && !dontcount.includes(block.type)) {
                     // Ustawienia tekstu
                     ctx.font = 'bold 10px Arial';
                     ctx.fillStyle = 'white';
@@ -1311,6 +1313,65 @@ function buildBlockAtPosition(x, y, blockTypeToAdd) {
         console.log(`Dodano blok :)  ${blockTypeToAdd} na (${snappedGlobalX}, ${snappedGlobalY})`);
     }
 }
+function buildBlockAtPositionBefore(x, y, blockTypeToAdd) {
+    let maxblocktorm = 0;
+    const globalX = x + offsetX;
+    const globalY = y + offsetY;
+
+    const snapToBlockGrid = (value) => Math.floor(value / blockSize) * blockSize;
+    const snappedGlobalX = snapToBlockGrid(globalX);
+    const snappedGlobalY = snapToBlockGrid(globalY);
+
+    // Obliczamy chunk, do którego należy ten blok
+    const chunkX = Math.floor(snappedGlobalX / blockSize);
+    const chunkY = Math.floor(snappedGlobalY / blockSize);
+    const chunkKey = `${chunkX},${chunkY}`;
+
+    // Obliczamy odległość od gracza (offsetX, offsetY)
+    const distanceFromPlayer = Math.sqrt(
+        (snappedGlobalX - offsetX) ** 2 + (snappedGlobalY - offsetY) ** 2
+    );
+
+    // Sprawdzamy, czy odległość jest mniejsza niż 10 bloków
+    if (distanceFromPlayer > 10 * blockSize) {
+        return; // Jeśli blok jest poza zasięgiem, przerywamy
+    }
+
+    // Sprawdzenie, czy chunk istnieje
+    let chunkBlocks = chunks[chunkKey];
+    if (!chunkBlocks) {
+        // Jeśli chunk nie istnieje, stwórz go
+        chunks[chunkKey] = [];
+        chunkBlocks = chunks[chunkKey]; // aktualizujemy odnośnik do tablicy bloków w chunku
+    }
+
+    // Sprawdzamy, czy w danym miejscu już istnieje blok
+    const blockExists = chunkBlocks.some(block => {
+        const blockGlobalX = block.x + (chunkX * blockSize);
+        const blockGlobalY = block.y + (chunkY * blockSize);
+
+        // Jeżeli już istnieje blok dirt, przerwij dodawanie nowego dirta
+        if (blockGlobalX === snappedGlobalX && blockGlobalY === snappedGlobalY) {
+            if (block.type === "dirt" && blockTypeToAdd === "dirt") {
+                console.log("Nie można dodać bloku 'dirt' - już istnieje na tej pozycji.");
+                return true; // Blok istnieje, a typ to 'dirt'
+            }
+            return true; // Blok istnieje, ale nie jest to 'dirt'
+        }
+        return false;
+    });
+
+    // Dodajemy nowy blok na początku tablicy, jeśli nie ma już bloku na tych współrzędnych
+    if (!blockExists) {
+        chunks[chunkKey].unshift({ 
+            x: snappedGlobalX - (chunkX * blockSize), 
+            y: snappedGlobalY - (chunkY * blockSize), 
+            type: blockTypeToAdd 
+        });
+        console.log(`Dodano blok :) ${blockTypeToAdd} na (${snappedGlobalX}, ${snappedGlobalY}) jako pierwszy na liście.`);
+    }
+}
+
 function buildBlockAtPosition(x, y, blockTypeToAdd) {
   let maxblocktorm = 0;
   const globalX = x + offsetX;
@@ -1702,9 +1763,9 @@ if (["birch0"].some(tree => checkBlockAtPosition(x, y, tree))) {
   removeBlockAtPosition(x, y, "grass");
   addItem("grasslayer", 1);
   if(Math.random()<0.2){
-  buildBlockAtPosition(x, y, "clayblock");
+  buildBlockAtPositionBefore(x, y, "clayblock");
   }else{
-    buildBlockAtPosition(x, y, "dirt");
+    buildBlockAtPositionBefore(x, y, "dirt");
   }
   return;
 }
