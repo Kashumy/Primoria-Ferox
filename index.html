@@ -176,7 +176,7 @@ function isPlayerInWater() {
 }
 
 let waterspeed = 2;
-let norspeed = 5;
+let norspeed = 4;
 let playerSpeed = 4;
 let player = {
     x: canvas.width / 2,
@@ -791,7 +791,7 @@ let targetX = offsetX; // Docelowa pozycja X
 let targetY = offsetY; // Docelowa pozycja Y
 let smoothingFactor = 0.2; // Współczynnik gładkości (jak szybko gracz się przesuwa)
 
-const targetFPS = 20; // Desired frames per second
+const targetFPS = 15; // Desired frames per second
 const frameDuration = 1000 / targetFPS; // Duration of each frame in milliseconds
 const enemyTextures = {
     'bat': new Image(),
@@ -809,7 +809,7 @@ function Enemy(x, y, type) {
     this.type = type;
     this.width = 32; // szerokość przeciwnika
     this.height = 32; // wysokość przeciwnika
-    this.speed = 4; // prędkość przeciwnika
+    this.speed = 3; // prędkość przeciwnika
     this.animationFrame = 0; // Bieżąca klatka animacji
     this.tickCount = 0; // Licznik klatek
 }
@@ -1045,7 +1045,7 @@ drawEnemies()
     const timeTaken = endTime - startTime;
     const timeToWait = Math.max(0, frameDuration - timeTaken);
 
-    setTimeout(update, timeToWait); // Wywołanie update ponownie
+    setTimeout(update, frameDuration); // Wywołanie update ponownie
 }
 
 
