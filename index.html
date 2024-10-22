@@ -941,17 +941,17 @@ function spawnBatNearPlayer() {
     let batX, batY;
 
     // Losowanie pozycji X: 10 bloków w lewo (-) lub w prawo (+)
-    if (Math.random() >= 0.5) {
+    if (Math.random() >= 0.3) {
         batX =  offsetX + spawnDistance; // 10 bloków w prawo od gracza
     } else {
-        batX = offsetX - spawnDistance; // 10 bloków w lewo od gracza
+        batX = offsetX ; // 10 bloków w lewo od gracza
     }
 
     // Losowanie pozycji Y: 10 bloków w górę (-) lub w dół (+)
-    if (Math.random() >= 0.5) {
+    if (Math.random() >= 0.3) {
         batY = offsetY + spawnDistance; // 10 bloków w dół od gracza
     } else {
-        batY = offsetY - spawnDistance; // 10 bloków w górę od gracza
+        batY = offsetY ; // 10 bloków w górę od gracza
     }
 
     // Tworzenie nowego nietoperza w wylosowanej pozycji
@@ -1136,7 +1136,31 @@ function dropItemAtPlayerPosition(item) {
     // Zaokrąglij pozycję gracza do siatki bloków 32x32
     let playerX = Math.floor((offsetX + player.x) / blockSize) * blockSize;
     let playerY = Math.floor((offsetY + player.y) / blockSize) * blockSize;
+if (item=="blackberry-fruit") {
+  if (currentHP > 80) {
+    
+  } else {
+    updateHealth(30)
+    return;
+  }
+}
+if (item == "kite") {
+  if (currentHP > 80) {
 
+  } else {
+    updateHealth(20)
+    return;
+  }
+}
+if (item == "briar-fruit") {
+  if (currentHP > 70) {
+
+  } else {
+    updateHealth(40)
+    return;
+  }
+}
+ 
     // Zmiana pozycji na podstawie ostatniego kierunku
     switch (lastDirection) {
         case 'up':
@@ -1361,7 +1385,7 @@ function removeBatAtPosition(x, y) {
         );
 
         // Jeśli odległość od kliknięcia jest mniejsza niż 64px i gracz jest w odległości 2 bloków od nietoperza, nietoperz może być usunięty
-        if (distanceClick <= 64 && distanceFromPlayer <= 94 && checkIfItems("pointed_stick", 1)) {
+        if (distanceClick <= 34 && distanceFromPlayer <= 64 && checkIfItems("pointed_stick", 1)) {
             // Usuwamy nietoperza
             return false;
         }
@@ -1438,6 +1462,18 @@ if (checkBlockAtPosition(x, y, "blackberry-fruit") && checkEmptySlots(0)) {
   blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
   removeBlockAtPosition(x, y, "blackberry-fruit");
 }
+  return;
+}
+if (checkBlockAtPosition(x, y, "kite") && checkEmptySlots(0)) {
+  if (currentHP > 80) {
+    addItem("kite", 1); // Zyskujesz 1 rock
+    blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+    removeBlockAtPosition(x, y, "kite");
+  } else {
+    updateHealth(20)
+    blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
+    removeBlockAtPosition(x, y, "kite");
+  }
   return;
 }
 if (checkBlockAtPosition(x, y, "briar-fruit") && checkEmptySlots(0)) {
@@ -1968,7 +2004,7 @@ function saveGameState() {
     localStorage.setItem('playerX', offsetX);
     localStorage.setItem('playerY', offsetY);
     localStorage.setItem('nightcycle', nightpower);
-localStorage.setItem('Hp', currentHP);
+localStorage.setItem('Hp', currentHP );
     // Zapisz przedmioty gracza
     localStorage.setItem('youritems', JSON.stringify(yourItems));
 
@@ -1984,8 +2020,16 @@ function loadGameState() {
     const storedPlayerX = localStorage.getItem('playerX');
     const storedPlayerY = localStorage.getItem('playerY');
     nightpower=localStorage.getItem('nightcycle')
-    currentHP=localStorage.getItem('Hp')||100
-    updateHealth(0)
+    if(localStorage.getItem('Hp')){
+    currentHP=parseInt(localStorage.getItem('Hp'))
+    
+            // Aktualizacja szerokości paska życia w procentach
+        const healthBar = document.getElementById('healthBar');
+        const healthPercentage = (currentHP / maxHP) * 100;
+        healthBar.style.width = healthPercentage + '%';
+ 
+}
+    
     setTimeout(function (){
       increasing=true
     },5000)
