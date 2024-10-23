@@ -363,8 +363,13 @@ const textures = {};
 
 // Definicja nazw tekstur i ich ścieżek
 const textureSources = {
+  long_spear: './long-spear.png',
+  raw_sharkmeat: './raw_sharkmeat.png',
+  cooked_sharkmeat: './cooked_sharkmeat.png',
     grass: './grass.png',
-    
+    coal: './coal.png',
+    sapling: './sapling.png',
+pointed_stick: './pointed_stick.png',
     clay: './clay.png',
   clayblock1: './clayblock.png',
   clayblock: './clayblock.png',
@@ -836,12 +841,19 @@ const targetFPS = 15; // Desired frames per second
 const frameDuration = 1000 / targetFPS; // Duration of each frame in milliseconds
 const enemyTextures = {
     'bat': new Image(),
-    'bat1': new Image()
+    'bat1': new Image(),
+'shark': new Image(),
+'shark1': new Image(),
+'wasp': new Image(),
+  'wasp1': new Image(),
 };
 
 enemyTextures['bat'].src = './bat.png'; // Ścieżka do tekstury
 enemyTextures['bat1'].src = './bat1.png'; // Ścieżka do tekstury animacji
-
+enemyTextures['shark'].src = './shark.png';
+enemyTextures['shark1'].src = './shark1.png';
+enemyTextures['wasp'].src = './wasp.png';
+enemyTextures['wasp1'].src = './wasp1.png';
 let renderedEnemies = []; // Lista przechowująca aktualnie renderowanych przeciwników
 
 function Enemy(x, y, type) {
@@ -907,11 +919,11 @@ function updateEnemies() {
           (enemy.x - playerCenterX) ** 2 + (enemy.y - playerCenterY) ** 2
         );
 
-
+let collisionDetected2 = false;
         if (distanceFromPlayer <= 30) {
           updateHealth(-1); // Zadaj obrażenia graczowi
         }
-
+        if(enemy.type=='bat'||enemy.type=='bat1'||enemy.type=='wasp'||enemy.type=='wasp1'){
         for (let block of renderedBlocks) {
           if (block.type === 'rock' || block.type === 'tree0' || block.type === 'birch0' || block.type === 'yew0' || block.type === 'pine0' || block.type === 'stone_wall' || block.type === 'log_wall'|| block.type === 'log'|| block.type === 'water') {
 
@@ -927,13 +939,32 @@ function updateEnemies() {
             }
           }
         }
+        }else{
+          for (let block of renderedBlocks) {
+  if (block.type !== 'water' ) {
+
+    // Obliczenie dystansu między środkiem nietoperza a środkiem bloku
+    let dx = (enemy.x + enemy.width / 2) - offsetX - (block.x + blockSize / 2);
+    let dy = (enemy.y + enemy.height / 2) - offsetY - (block.y + blockSize / 2);
+    let distanceToBlock = Math.sqrt(dx * dx + dy * dy);
+
+    // Jeśli odległość jest mniejsza niż promień kolizji, cofamy nietoperza
+    if (distanceToBlock < collisionRadius) {
+      collisionDetected2 = true;
+      break;
+    }
+  }
+}
+        }
 
         // Jeśli wykryto kolizję, cofamy nietoperza do poprzedniej pozycji
         if (collisionDetected) {
           enemy.x = prevX;
           enemy.y = prevY;
         }
-
+if (collisionDetected2 && enemy.type === 'shark') {
+  return false; // Usuwamy rekina z tablicy
+}
         // Animacja
         enemy.tickCount++;
         if (enemy.tickCount >= 5) { // Co 5 klatek
@@ -948,6 +979,7 @@ function updateEnemies() {
 
 function drawEnemies() {
     renderedEnemies.forEach(enemy => {
+      if(enemy.type !== 'shark' &&enemy.type!=='wasp'){
         const enemyTexture = enemy.animationFrame === 0 ? enemyTextures['bat'] : enemyTextures['bat1'];
         if (enemyTexture.complete && enemyTexture.naturalWidth > 0) {
             // Rysujemy przeciwnika w odniesieniu do offsetX i offsetY (przewijanie świata)
@@ -958,18 +990,98 @@ function drawEnemies() {
                 enemy.width, 
                 enemy.height
             );
+        }}else if(enemy.type=='wasp'){
+        const enemyTexture = enemy.animationFrame === 0 ? enemyTextures['wasp'] : enemyTextures['wasp1'];
+        if (enemyTexture.complete && enemyTexture.naturalWidth > 0) {
+            // Rysujemy przeciwnika w odniesieniu do offsetX i offsetY (przewijanie świata)
+            ctx.drawImage(
+                enemyTexture, 
+                enemy.x - offsetX, // Przesunięcie pozycji X o offsetX
+                enemy.y - offsetY, // Przesunięcie pozycji Y o offsetY
+                enemy.width, 
+                enemy.height
+            );
+        }}else{
+          const enemyTexture = enemy.animationFrame === 0 ? enemyTextures['shark'] : enemyTextures['shark1'];
+if (enemyTexture.complete && enemyTexture.naturalWidth > 0) {
+  // Rysujemy przeciwnika w odniesieniu do offsetX i offsetY (przewijanie świata)
+  ctx.drawImage(
+    enemyTexture,
+    enemy.x - offsetX, // Przesunięcie pozycji X o offsetX
+    enemy.y - offsetY, // Przesunięcie pozycji Y o offsetY
+    enemy.width,
+    enemy.height
+  );
+}
         }
     });
 }
 
 
 
+function growTreeInVisibleChunks() {
+    // Iterujemy przez wszystkie chunki, które są aktualnie widoczne
+    
+    Object.keys(chunks).forEach((chunkKey) => {
+        const chunkBlocks = chunks[chunkKey];
+
+        // Sprawdzamy każdy blok w chunku
+        chunkBlocks.forEach((block) => {
+          if(Math.random()<0.01&&Math.random()<0.03){
+            if (block.type === 'sapling') {
+                // Obliczamy globalne współrzędne bloku
+                const globalX = block.x + (parseInt(chunkKey.split(',')[0]) * blockSize);
+                const globalY = block.y + (parseInt(chunkKey.split(',')[1]) * blockSize);
+
+                // Usuwamy sadzonkę
+                removeBlockAtPosition(globalX - offsetX, globalY - offsetY, 'sapling');
+                
+                // Struktura drzewa, wszystkie bloki będą w jednym chunku
+                let treeStructure = [
+                    { x: 0, y: 0, type: "pine0" },   // Pień drzewa
+                    { x: 0, y: -32, type: "pine1" },  // Drugi blok pnia
+                    { x: 0, y: -64, type: "pine2" },  // Trzeci blok (liście/czubek)
+                    { x: 0, y: -96, type: "pine2" },  // Czwarty blok (liście/czubek)
+                ];
+                if (Math.random() < 0.3) {
+                  treeStructure = [
+                    { x: 0, y: 0, type: "tree0" }, // Pień drzewa
+                    { x: 0, y: -32, type: "tree1" }, // Drugi blok pnia
+                    { x: 0, y: -64, type: "tree2" },
+                ];
+                }        else if (Math.random() < 0.3) {
+                  treeStructure = [
+                    { x: 0, y: 0, type: "birch0" }, // Pień drzewa
+                    { x: 0, y: -32, type: "birch1" }, // Drugi blok pnia
+                    { x: 0, y: -64, type: "birch2" },
+                ];
+                }else{}
+
+                // Sprawdzamy, czy chunk istnieje, jeśli nie - tworzymy
+                if (!chunks[chunkKey]) {
+                    chunks[chunkKey] = [];
+                }
+
+                // Dodajemy całą strukturę drzewa jako jeden wpis do chunku
+                treeStructure.forEach((treeBlock) => {
+                    chunks[chunkKey].push({
+                        x: block.x + treeBlock.x, // lokalna pozycja w chunku
+                        y: block.y + treeBlock.y, // lokalna pozycja w chunku
+                        type: treeBlock.type      // typ bloku drzewa
+                    });
+                });
+
+                console.log(`Sadzonka urosła w drzewo typu 'pine' na pozycji (${globalX}, ${globalY}) w chunku ${chunkKey}`);
+            }}
+        });
+    });
+}
 
 function update() {
     const startTime = performance.now(); // Get the current time at the start of the update
     updateDayNightCycle();
     
-
+growTreeInVisibleChunks()
 
     if(nightpower>=2){
       if(Math.random()<=0.01){
@@ -1006,6 +1118,73 @@ spawnBatNearPlayer();
 
       }
     }
+    if (Math.random() <= 0.002) {
+  let bat = new Enemy(8 * blockSize + offsetX, 8 * blockSize + offsetY, 'wasp', 32, 32, 2);
+  // Stała reprezentująca 10 bloków odległości
+  const spawnDistance = 9 * blockSize;
+
+  // Funkcja tworzenia nietoperza w losowej pozycji względem gracza
+  function spawnBatNearPlayer2() {
+    let batX, batY;
+
+    // Losowanie pozycji X: 10 bloków w lewo (-) lub w prawo (+)
+    if (Math.random() >= 0.3) {
+      batX = offsetX + spawnDistance; // 10 bloków w prawo od gracza
+    } else {
+      batX = offsetX; // 10 bloków w lewo od gracza
+    }
+
+    // Losowanie pozycji Y: 10 bloków w górę (-) lub w dół (+)
+    if (Math.random() >= 0.3) {
+      batY = offsetY + spawnDistance; // 10 bloków w dół od gracza
+    } else {
+      batY = offsetY; // 10 bloków w górę od gracza
+    }
+
+    // Tworzenie nowego nietoperza w wylosowanej pozycji
+    let bat = new Enemy(batX, batY, 'wasp');
+    bat.speed = 1.5
+    renderedEnemies.push(bat); // Dodanie nietoperza do listy renderowanych przeciwników
+  }
+
+  // Przykład wywołania funkcji (np. w regularnym interwale lub zdarzeniu)
+  spawnBatNearPlayer2();
+
+
+}else if (Math.random() <= 0.005) {
+        let bat = new Enemy(8 * blockSize + offsetX, 8 * blockSize + offsetY, 'shark',32,32,1);
+        // Stała reprezentująca 10 bloków odległości
+        const spawnDistance = 9 * blockSize;
+
+        // Funkcja tworzenia nietoperza w losowej pozycji względem gracza
+        function spawnBatNearPlayer2() {
+          let batX, batY;
+
+          // Losowanie pozycji X: 10 bloków w lewo (-) lub w prawo (+)
+          if (Math.random() >= 0.3) {
+            batX = offsetX + spawnDistance; // 10 bloków w prawo od gracza
+          } else {
+            batX = offsetX; // 10 bloków w lewo od gracza
+          }
+
+          // Losowanie pozycji Y: 10 bloków w górę (-) lub w dół (+)
+          if (Math.random() >= 0.3) {
+            batY = offsetY + spawnDistance; // 10 bloków w dół od gracza
+          } else {
+            batY = offsetY; // 10 bloków w górę od gracza
+          }
+
+          // Tworzenie nowego nietoperza w wylosowanej pozycji
+          let bat = new Enemy(batX, batY, 'shark');
+          bat.speed=1.5
+          renderedEnemies.push(bat); // Dodanie nietoperza do listy renderowanych przeciwników
+        }
+
+        // Przykład wywołania funkcji (np. w regularnym interwale lub zdarzeniu)
+        spawnBatNearPlayer2();
+
+
+      }
     playerX = offsetX; // Gracz jest zawsze na środku ekranu
     playerY = offsetY;
 
@@ -1099,7 +1278,7 @@ function checkCollisionWithRock(playerX, playerY) {
     let collisionDetected = false;
 
     for (let block of renderedBlocks) {
-        if (block.type === 'rock'||block.type === 'tree0'||block.type === 'birch0'||block.type === 'yew0'|| block.type === 'pine0'|| block.type === 'stone_wall'|| block.type === 'log_wall'|| block.type === 'log') {
+        if (block.type === 'rock'||block.type === 'tree0'||block.type === 'birch0'||block.type === 'yew0'|| block.type === 'pine0'|| block.type === 'stone_wall'|| block.type === 'log_wall'|| block.type === 'log'|| block.type === 'sapling') {
           
             let dx = (player.x + player.width / 2) - (block.x + blockSize / 2);
 let dy = (player.y + player.height / 2) - (block.y + blockSize / 2);
@@ -1560,7 +1739,10 @@ function removeBatAtPosition(x, y) {
         if (distanceClick <= 34 && distanceFromPlayer <= 64 && checkIfItems("pointed_stick", 1)) {
             // Usuwamy nietoperza
             return false;
-        }else if (distanceClick <= 34 && distanceFromPlayer <= 64 ) {
+        }else if (distanceClick <= 34 && distanceFromPlayer <= 86 && checkIfItems("long_spear", 1)) {
+  // Usuwamy nietoperza
+  return false;
+}else if (distanceClick <= 34 && distanceFromPlayer <= 64 ) {
 
   showTextInCanvas("oops. it seems like you doesn't have any weapon ")
 }
@@ -1687,9 +1869,10 @@ if (checkBlockAtPosition(x, y, "briar-fruit") && checkEmptySlots(0)) {
 }
 if (checkBlockAtPosition(x, y, "fireplow") && checkEmptySlots(0)) {
   // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
-  addItem("fireplow", 1);
+  
   blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
-  if(Math.random()>0.2){
+  if(Math.random()>0.1){
+    addItem("fireplow", 1);
   removeBlockAtPosition(x, y, "fireplow");
   igniteFiberAround(x, y, 64);
   return;
@@ -1699,9 +1882,10 @@ if (checkBlockAtPosition(x, y, "fireplow") && checkEmptySlots(0)) {
 }
 if (checkBlockAtPosition(x, y, "fireroll") && checkEmptySlots(0)) {
   // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
-  addItem("fireroll", 1);
+  
   blockTypes.forEach(type => removeBlockAtPosition(x, y, type));
   if(Math.random()>0.9){
+    addItem("fireroll", 1);
   removeBlockAtPosition(x, y, "fireroll");
   igniteFiberAround(x, y, 64);
   return;
@@ -1732,9 +1916,19 @@ Object.keys(allItems).forEach(itemName => {
 
 
     if (["tree0"].some(tree => checkBlockAtPosition(x, y, tree))) {
-        if (checkIfItems("stone_axe", 1) && checkEmptySlots(2)) {  // Potrzebujesz siekiery i 2 miejsc w ekwipunku
+        if (checkIfItems("stone_axe", 1) && checkEmptySlots(3)) {  // Potrzebujesz siekiery i 2 miejsc w ekwipunku
             addItem("log", 3);
+            addItem("sapling", 1);
+            if(Math.random()<0.3){
             addItem("treebark", 1);
+            }else if (Math.random() < 0.3) {
+  addItem("longstick", 1);
+  addItem("sapling", 1);
+}else{
+addItem("stick", 1);
+addItem("sapling", 1);
+ }
+            
             removeTree(x, y);  // Usuwamy drzewo
         } else {
             showTextInCanvas("you need a tool");
@@ -1742,22 +1936,30 @@ Object.keys(allItems).forEach(itemName => {
     }
     if (["pine0"].some(tree => checkBlockAtPosition(x, y, tree))) {
   if (checkIfItems("stone_axe", 1) && checkEmptySlots(2)) { // Potrzebujesz siekiery i 2 miejsc w ekwipunku
-    addItem("log", 3);
+    addItem("log", 2);
     addItem("resin", 1);
-    removeTree(x, y); // Usuwamy drzewo
-  } else {
-    showTextInCanvas("you need a tool");
-  }
+addItem("sapling", 1);
+if (Math.random() < 0.3) {
+  addItem("treebark", 1);
+} else {
+  addItem("stick", 1);
+  addItem("sapling", 1);
 }
+removeTree(x, y);
+}}
 if (["birch0"].some(tree => checkBlockAtPosition(x, y, tree))) {
   if (checkIfItems("stone_axe", 1) && checkEmptySlots(2)) { // Potrzebujesz siekiery i 2 miejsc w ekwipunku
-    addItem("log", 1);
-    addItem("birch-powder", 4);
-    removeTree(x, y); // Usuwamy drzewo
-  } else {
-    showTextInCanvas("you need a tool");
-  }
+    addItem("log", 2);
+addItem("birch-powder", 1);
+addItem("sapling", 1);
+if (Math.random() < 0.3) {
+  addItem("longstick", 1);
+} else {
+  addItem("stick", 1);
+  addItem("sapling", 1);
 }
+removeTree(x, y);
+}}
 
   if (checkBlockAtPosition(x, y, "grass") && checkEmptySlots(0) && checkIfItems("stoneshovel", 1)) {
   // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
@@ -1964,7 +2166,12 @@ image-rendering:pixelated;
         var slots = 8;  // Max slots
         var allItems = { // Definicja tekstur przedmiotów
 "fiber": "./fiber.png",
+long_spear: './long-spear.png',
+  raw_sharkmeat: './raw_sharkmeat.png',
+  cooked_sharkmeat: './cooked_sharkmeat.png',
+coal: './coal.png',
 decrafter  :"./decrafter.png",
+sapling  :"./sapling.png",
 "grasslayer": "./grass.png",
 "stoneshovel": "./shovel.png",
 clay: './clay.png',
@@ -2020,6 +2227,7 @@ stone_floor: './stone_floor.png',
         // Definicja receptur
         var recipes = {
 "fiber": ["treebark", "treebark"],
+"long_spear": ["longstick", "pointed_stick","sharpstone","cordage"],
 "torch": ["resin", "stick","ignited_fiber"],
 "decrafter": ["stone", "woodboard","woodboard","stone","woodboard"],
 "campfire": ["stone", "stone","ignited_fiber"],
@@ -2044,7 +2252,8 @@ stone_floor: './stone_floor.png',
         };
         var canbedecrafted=["brickwall","clayblock","ashfloor","cordage","fiber","fireplow","stone_wall","fiber_floor","torch","campfire","brickfloor","fireroll","decrafter","log_floor","log_wall","sharpstone","pointed_stick","thistleroot","woodboard"]
 var campfirerecipes = {
-  "cooked_thistleroot": ["thistleroot"],
+"cooked_thistleroot": ["thistleroot"],
+"coal": ["stick"],
   "brick": ["clay","ash"],
   "brickwall": ["clay", "brick", "brick", "brick"],
 "brickfloor": ["clay", "brick", "brick", "brick"],
