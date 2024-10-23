@@ -97,6 +97,12 @@ nightpower=0
             align-items: center;
             overflow: hidden; /* Zapobiega wychodzeniu thumba poza joystick */
         }
+        @media (min-width: 1024px) {
+  .controls {
+    display: none;
+  }
+}
+
         .thumb {
             width: 40px; margin: -20px;
             height: 40px;
@@ -175,9 +181,9 @@ function isPlayerInWater() {
     return isInWater;
 }
 
-let waterspeed = 2;
-let norspeed = 4;
-let playerSpeed = 4;
+let waterspeed = 3.2;
+let norspeed = 5;
+let playerSpeed = 5;
 let player = {
     x: canvas.width / 2,
     y: canvas.height / 2,
@@ -835,9 +841,9 @@ function drawChunks() {
 
 let targetX = offsetX; // Docelowa pozycja X
 let targetY = offsetY; // Docelowa pozycja Y
-let smoothingFactor = 0.2; // Współczynnik gładkości (jak szybko gracz się przesuwa)
+let smoothingFactor = 0.1; // Współczynnik gładkości (jak szybko gracz się przesuwa)
 
-const targetFPS = 15; // Desired frames per second
+const targetFPS = 13; // Desired frames per second
 const frameDuration = 1000 / targetFPS; // Duration of each frame in milliseconds
 const enemyTextures = {
     'bat': new Image(),
@@ -2259,7 +2265,7 @@ var campfirerecipes = {
 "brickfloor": ["clay", "brick", "brick", "brick"],
 "ash": ["stick"],
 }
-        var yourItems = [];  // Ekwipunek
+        var yourItems = ["sapling","sapling"];  // Ekwipunek
 function isNearDecrafter(playerX, playerY) {
     const decrafterRange = 2 * blockSize;  // Zasięg 3 bloków od dekratora
 
@@ -2719,3 +2725,35 @@ document.addEventListener('keyup', (e) => {
 });
 
     </script>
+    
+
+
+<div id="fpsCounter" style="position: fixed; bottom: 10px; right: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px; font-family: Arial, sans-serif; font-size: 8px;">
+  FPS: 0
+</div>
+<script>
+  let lastFrameTime = performance.now();
+let frameCount = 0;
+let fps = 0;
+
+function updateFPS() {
+    const now = performance.now();
+    frameCount++;
+
+    // Sprawdzenie, ile czasu minęło od ostatniej aktualizacji
+    const deltaTime = now - lastFrameTime;
+    
+    if (deltaTime >= 1000) { // Co sekundę aktualizujemy FPS
+        fps = (frameCount / deltaTime) * 1000;
+        frameCount = 0;
+        lastFrameTime = now;
+        document.getElementById('fpsCounter').textContent = `FPS: ${fps.toFixed(1)}`;
+    }
+
+    requestAnimationFrame(updateFPS); // Kontynuuj obliczanie FPS
+}
+
+// Start miernika FPS
+updateFPS();
+
+</script>
