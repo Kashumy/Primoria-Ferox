@@ -745,10 +745,10 @@ function isNearTorch(blocks, x, y) {
     if(yourItems!==undefined){
     if(checkIfItems("hand_torch",1)  ){
       const radius5 = 1.5 * blockSize;
-    const playerCenterX = offsetX +  canvas.width/2 * blockSize;
-const playerCenterY = offsetY +  canvas.width/2 * blockSize;
-const distX2 = Math.abs(playerCenterX/32- x);
-const distY2 = Math.abs(playerCenterY/32- y);
+    const playerCenterX = offsetX +  canvas.width/2*32 * blockSize;
+const playerCenterY = offsetY +  canvas.height/2*32 * blockSize;
+const distX2 = Math.abs(playerCenterX/32/32- x);
+const distY2 = Math.abs(playerCenterY/32/32- y);
 if (distX2 <= radius5 && distY2 <= radius5) {
   return true; // Pochodnia jest w pobliżu
 }
