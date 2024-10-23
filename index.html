@@ -153,7 +153,7 @@ const inventory = {
     items: [], // Tablica przechowująca przedmioty
     maxSlots: 4, // Maksymalna liczba slotów w ekwipunku
 };
-const waterBuilder = ["stone_floor", "fiber_floor","grasslayer","grass"];
+const waterBuilder = ["stone_floor", "fiber_floor","grasslayer","grass","yellow","violet","thistle","clayblock","clayblock1","dandelion","toadstool",];
 
 function isPlayerInWater() {
     let isInWater = false;
@@ -725,7 +725,9 @@ function updateDayNightCycle() {
 }
 function isNearTorch(blocks, x, y) {
     const radius = 2 * blockSize;  // Promień w pikselach, w którym szukamy pochodni
+     
     for (const block of blocks) {
+       
         if (block.type === 'torch') {
             const distX = Math.abs(block.x - x);
             const distY = Math.abs(block.y - y);
@@ -734,6 +736,7 @@ function isNearTorch(blocks, x, y) {
             }
         }
     }
+    
     const radius2 = 1 * blockSize; // Promień w pikselach, w którym szukamy pochodni
 for (const block of blocks) {
   if (block.type === 'campfire') {
@@ -754,6 +757,7 @@ for (const block of blocks) {
     }
   }
 }
+ 
     return false;
 }
 
@@ -2253,7 +2257,7 @@ stone_floor: './stone_floor.png',
 "thistleroot": ["thistle"],
 "brickwall": ["clay", "brick", "brick", "brick"],
 "brickfloor": ["clay", "brick", "brick", "brick"],
-"clayblock": ["clay", "clay"],
+"clayblock1": ["clay", "clay"],
 "ashfloor": ["ash", "ash","ash"],
         };
         var canbedecrafted=["brickwall","clayblock","ashfloor","cordage","fiber","fireplow","stone_wall","fiber_floor","torch","campfire","brickfloor","fireroll","decrafter","log_floor","log_wall","sharpstone","pointed_stick","thistleroot","woodboard"]
@@ -2265,7 +2269,10 @@ var campfirerecipes = {
 "brickfloor": ["clay", "brick", "brick", "brick"],
 "ash": ["stick"],
 }
-        var yourItems = ["sapling","sapling"];  // Ekwipunek
+        var yourItems = ["stone_axe","torch","decrafter"];  // Ekwipunek
+        for (var i = 0; i < 200; i++) {
+//dropItemAtPlayerPosition("campfire")
+        }
 function isNearDecrafter(playerX, playerY) {
     const decrafterRange = 2 * blockSize;  // Zasięg 3 bloków od dekratora
 
@@ -2274,9 +2281,10 @@ function isNearDecrafter(playerX, playerY) {
     const playerCenterY = player.y + (offsetY/32 )+ player.height ;
 
     let nearDecrafter = false;
-
+var itercount=0
     // Iteracja przez zrenderowane bloki
     renderedBlocks.forEach(block => {
+itercount++
         if (block.type === 'decrafter') {
             const distance = Math.sqrt(
                 (block.x + blockSize / 2 - playerCenterX) ** 2 +
