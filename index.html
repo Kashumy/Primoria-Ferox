@@ -925,7 +925,7 @@ let collisionDetected2 = false;
         }
         if(enemy.type=='bat'||enemy.type=='bat1'||enemy.type=='wasp'||enemy.type=='wasp1'){
         for (let block of renderedBlocks) {
-          if (block.type === 'rock' || block.type === 'tree0' || block.type === 'birch0' || block.type === 'yew0' || block.type === 'pine0' || block.type === 'stone_wall' || block.type === 'log_wall'|| block.type === 'log'|| block.type === 'water') {
+          if (block.type === 'rock' || block.type === 'tree0' || block.type === 'birch0' || block.type === 'yew0' || block.type === 'pine0' || block.type === 'stone_wall' || block.type === 'log_wall'|| block.type === 'log'|| block.type === 'water'|| block.type === 'brickwall') {
 
             // Obliczenie dystansu między środkiem nietoperza a środkiem bloku
             let dx = (enemy.x + enemy.width / 2) - offsetX - (block.x + blockSize / 2);
@@ -1027,7 +1027,7 @@ function growTreeInVisibleChunks() {
 
         // Sprawdzamy każdy blok w chunku
         chunkBlocks.forEach((block) => {
-          if(Math.random()<0.01&&Math.random()<0.03){
+          if(Math.random()<0.01&&Math.random()<0.05){
             if (block.type === 'sapling') {
                 // Obliczamy globalne współrzędne bloku
                 const globalX = block.x + (parseInt(chunkKey.split(',')[0]) * blockSize);
@@ -1278,7 +1278,7 @@ function checkCollisionWithRock(playerX, playerY) {
     let collisionDetected = false;
 
     for (let block of renderedBlocks) {
-        if (block.type === 'rock'||block.type === 'tree0'||block.type === 'birch0'||block.type === 'yew0'|| block.type === 'pine0'|| block.type === 'stone_wall'|| block.type === 'log_wall'|| block.type === 'log'|| block.type === 'sapling') {
+        if (block.type === 'rock'||block.type === 'tree0'||block.type === 'birch0'||block.type === 'yew0'|| block.type === 'pine0'|| block.type === 'stone_wall'|| block.type === 'log_wall'|| block.type === 'log'|| block.type === 'sapling'|| block.type === 'brickwall') {
           
             let dx = (player.x + player.width / 2) - (block.x + blockSize / 2);
 let dy = (player.y + player.height / 2) - (block.y + blockSize / 2);
