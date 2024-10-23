@@ -142,7 +142,7 @@ nightpower=0
 </div>
 
 <script>
-
+var yourItems = [];  // Ekwipunek
 var playerX=0
 var playerY=0
 const blockSize = 32;
@@ -370,6 +370,8 @@ const textures = {};
 // Definicja nazw tekstur i ich ścieżek
 const textureSources = {
   long_spear: './long-spear.png',
+  hand_torch: './hand-torch.png',
+  magnetite: './magnetite.png',
   raw_sharkmeat: './raw_sharkmeat.png',
   cooked_sharkmeat: './cooked_sharkmeat.png',
     grass: './grass.png',
@@ -701,6 +703,10 @@ function drawTreesAbovePlayer(trees) {
 }
 
 
+function checkIfItems(item, amount) {
+            let count = yourItems.filter(i => i === item).length;
+            return count >= amount;
+        }
 
 let renderedBlocks = []; // Przechowywanie bloków widocznych na ekranie
 let nightpower = 0;  // Początkowa wartość (dzień)
@@ -736,7 +742,17 @@ function isNearTorch(blocks, x, y) {
             }
         }
     }
-    
+    if(yourItems!==undefined){
+    if(checkIfItems("hand_torch",1)  ){
+      const radius5 = 1.5 * blockSize;
+    const playerCenterX = offsetX +  canvas.width/2 * blockSize;
+const playerCenterY = offsetY +  canvas.width/2 * blockSize;
+const distX2 = Math.abs(playerCenterX/32- x);
+const distY2 = Math.abs(playerCenterY/32- y);
+if (distX2 <= radius5 && distY2 <= radius5) {
+  return true; // Pochodnia jest w pobliżu
+}
+    }}
     const radius2 = 1 * blockSize; // Promień w pikselach, w którym szukamy pochodni
 for (const block of blocks) {
   if (block.type === 'campfire') {
@@ -845,7 +861,7 @@ function drawChunks() {
 
 let targetX = offsetX; // Docelowa pozycja X
 let targetY = offsetY; // Docelowa pozycja Y
-let smoothingFactor = 0.1; // Współczynnik gładkości (jak szybko gracz się przesuwa)
+let smoothingFactor = 0.25; // Współczynnik gładkości (jak szybko gracz się przesuwa)
 
 const targetFPS = 13; // Desired frames per second
 const frameDuration = 1000 / targetFPS; // Duration of each frame in milliseconds
@@ -2176,6 +2192,8 @@ image-rendering:pixelated;
         var slots = 8;  // Max slots
         var allItems = { // Definicja tekstur przedmiotów
 "fiber": "./fiber.png",
+hand_torch: './hand-torch.png',
+  magnetite: './magnetite.png',
 "clayblock1": "./clayblock.png",
 long_spear: './long-spear.png',
   raw_sharkmeat: './raw_sharkmeat.png',
@@ -2261,19 +2279,18 @@ stone_floor: './stone_floor.png',
 "clayblock1": ["clay", "clay"],
 "ashfloor": ["ash", "ash","ash"],
         };
-        var canbedecrafted=["brickwall","clayblock1","ashfloor","cordage","fiber","fireplow","stone_wall","fiber_floor","torch","campfire","brickfloor","fireroll","decrafter","log_floor","log_wall","sharpstone","pointed_stick","thistleroot","woodboard"]
+        var canbedecrafted=["brickwall","clayblock1","ashfloor","cordage","fiber","fireplow","stone_wall","fiber_floor","torch","campfire","brickfloor","fireroll","decrafter","log_floor","log_wall","sharpstone","pointed_stick","thistleroot","woodboard","hand_torch","stoneshovel","stone_axe"]
 var campfirerecipes = {
 "cooked_thistleroot": ["thistleroot"],
 "coal": ["stick"],
+"hand_torch": ["torch","torch","torch"],
   "brick": ["clay","ash"],
   "brickwall": ["clay", "brick", "brick", "brick"],
 "brickfloor": ["clay", "brick", "brick", "brick"],
 "ash": ["stick"],
 }
-        var yourItems = [];  // Ekwipunek
-        for (var i = 0; i < 200; i++) {
-//dropItemAtPlayerPosition("campfire")
-        }
+        
+        
 function isNearDecrafter(playerX, playerY) {
     const decrafterRange = 2 * blockSize;  // Zasięg 3 bloków od dekratora
 
@@ -2343,10 +2360,7 @@ function deconstructItem(item) {
         }
 
         // Funkcja sprawdzania ilości przedmiotów w ekwipunku
-        function checkIfItems(item, amount) {
-            let count = yourItems.filter(i => i === item).length;
-            return count >= amount;
-        }
+        
 
         // Funkcja usuwania przedmiotów z ekwipunku
         function deleteItems(item, amount) {
