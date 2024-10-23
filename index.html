@@ -762,7 +762,7 @@ for (const block of blocks) {
 }
 
 let chunkPositions = []; // Dodajemy do przechowywania pozycji chunków
-var dontcount = ["dirt", "grass", "tallgrass", "yellow", "dandelion", "violet","tree0","pine0","birch0","tree1","pine1","birch1","tree2","pine2","birch2","grasslayer","clayblock","ashfloor","shine","shiny","log_floor","log_wall","log","stone_floor","stone_wall","brickwall","brickfloor"];
+var dontcount = ["dirt", "grass", "tallgrass", "yellow", "dandelion", "violet","tree0","pine0","birch0","tree1","pine1","birch1","tree2","pine2","birch2","grasslayer","clayblock","ashfloor","shine","shiny","log_floor","log_wall","log","stone_floor","stone_wall","brickwall","brickfloor","clayblock1"];
 
 function drawChunks() {
     const startX = Math.floor(offsetX / blockSize);
@@ -2176,6 +2176,7 @@ image-rendering:pixelated;
         var slots = 8;  // Max slots
         var allItems = { // Definicja tekstur przedmiotów
 "fiber": "./fiber.png",
+"clayblock1": "./clayblock.png",
 long_spear: './long-spear.png',
   raw_sharkmeat: './raw_sharkmeat.png',
   cooked_sharkmeat: './cooked_sharkmeat.png',
@@ -2269,7 +2270,7 @@ var campfirerecipes = {
 "brickfloor": ["clay", "brick", "brick", "brick"],
 "ash": ["stick"],
 }
-        var yourItems = ["stone_axe","torch","decrafter"];  // Ekwipunek
+        var yourItems = [];  // Ekwipunek
         for (var i = 0; i < 200; i++) {
 //dropItemAtPlayerPosition("campfire")
         }
