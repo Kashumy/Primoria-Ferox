@@ -142,7 +142,7 @@ nightpower=0
 </div>
 
 <script>
-var yourItems = [];  // Ekwipunek
+var yourItems = ["stoneshovel"];  // Ekwipunek
 var playerX=0
 var playerY=0
 const blockSize = 32;
@@ -590,7 +590,7 @@ function generateChunk(chunkX, chunkY) {
       } else if (distanceFromSpawn > 1020) {
         blockType =  Math.random() < 0.1 ? 'magnetite' : 'sand'; // Piasek między 1000 a 1600 bloków
       } else {
-        blockType = 'grass'; // Trawa dla obszarów bliżej centrum
+        
       }
 
       
@@ -600,18 +600,21 @@ if (blockType === 'dirt' ||blockType === 'sand' || blockType === 'water') {
 } else {
   // Default behavior for grass
   
-  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
+  
 
   // Add trees and other flora
   if (!isInSpawnArea && Math.random() < 0.05) {
+    blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
     blocks.push({ x: i * blockSize, y: j * blockSize, type: 'tree0' });
     blocks.push({ x: i * blockSize, y: (j - 1) * blockSize, type: 'tree1' });
     blocks.push({ x: i * blockSize, y: (j - 2) * blockSize, type: 'tree2' });
   }else if (!isInSpawnArea && Math.random() < 0.01) {
+    blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
   blocks.push({ x: i * blockSize, y: j * blockSize, type: 'birch0' });
   blocks.push({ x: i * blockSize, y: (j - 1) * blockSize, type: 'birch1' });
   blocks.push({ x: i * blockSize, y: (j - 2) * blockSize, type: 'birch2' });
 }else if (!isInSpawnArea && Math.random() < 0.05) {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
   blocks.push({ x: i * blockSize, y: j * blockSize, type: 'pine0' });
   blocks.push({ x: i * blockSize, y: (j - 1) * blockSize, type: 'pine1' });
   blocks.push({ x: i * blockSize, y: (j - 2) * blockSize, type: 'pine2' });
@@ -668,6 +671,7 @@ blocks.push({ x: i * blockSize, y: (j - 3) * blockSize, type: 'pine2' });
   blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
   blocks.push({ x: i * blockSize, y: j * blockSize, type: 'chalcopyrite' });
 }else {
+  blocks.push({ x: i * blockSize, y: j * blockSize, type: 'grass' });
                 blocks.push({ x: Math.floor( i * blockSize), y: Math.floor( j * blockSize), type: blockType });
             }
         }}
@@ -1075,7 +1079,7 @@ let collisionDetected2 = false;
         }
         if(enemy.type=='bat'||enemy.type=='bat1'||enemy.type=='wasp'||enemy.type=='wasp1'||enemy.type=='bunny'){
         for (let block of renderedBlocks) {
-          if (block.type === 'rock' || block.type === 'tree0' || block.type === 'birch0' || block.type === 'yew0' || block.type === 'pine0' || block.type === 'stone_wall' || block.type === 'log_wall'|| block.type === 'log'|| block.type === 'water'|| block.type === 'brickwall') {
+          if (block.type === 'rock' || block.type === 'tree0' || block.type === 'birch0' || block.type === 'yew0' || block.type === 'pine0' || block.type === 'stone_wall' || block.type === 'log_wall'|| block.type === 'log' || block.type === 'brickwall') {
 
             // Obliczenie dystansu między środkiem nietoperza a środkiem bloku
             let dx = (enemy.x + enemy.width / 2) - offsetX - (block.x + blockSize / 2);
@@ -1107,7 +1111,7 @@ let collisionDetected2 = false;
 }
         }
 var collisionwithwater1=false
-if(enemy.type="bunny"){
+if(enemy.type=="bunny"){
           for (let block of renderedBlocks) {
             if (block.type == 'water') {
 
@@ -1124,7 +1128,7 @@ if(enemy.type="bunny"){
             }
           }}
         // Jeśli wykryto kolizję, cofamy nietoperza do poprzedniej pozycji
-        if (collisionDetected&& enemy.type == 'bunny' ) {
+        if (collisionDetected && enemy.type !== 'shark' ) {
           enemy.x = prevX;
           enemy.y = prevY;
         }
@@ -1302,8 +1306,8 @@ function update() {
     
 growTreeInVisibleChunks()
 unlitfurnaces()
-    if(nightpower>=2.4){
-      if(Math.random()<=0.01){
+    if(nightpower>=2){
+      if(Math.random()<=0.007){
         let bat = new Enemy(8 * blockSize + offsetX, 8 * blockSize + offsetY, 'bat');
         // Stała reprezentująca 10 bloków odległości
 const spawnDistance = 9* blockSize;
@@ -1337,8 +1341,9 @@ spawnBatNearPlayer();
 
       }
     }
-    if (Math.random() <= 0.002) {
+    if (Math.random() <= 0.003) {
   let bat = new Enemy(8 * blockSize + offsetX, 8 * blockSize + offsetY, 'wasp', 32, 32, 2);
+  
   // Stała reprezentująca 10 bloków odległości
   const spawnDistance = 9 * blockSize;
 
@@ -2069,6 +2074,22 @@ if(enemy.type!=="shark"){
 }else{
   showTextInCanvas("your current weapon doesn't work on shark")
 }}
+if (distanceClick <= 34 && distanceFromPlayer <= 70 && (checkIfItems("long_spear", 1))) {
+  if (enemy.type == "bat" || enemy.type == "wasp") {
+    
+    return false;
+  } else {
+    showTextInCanvas("you don't have any weapon")
+  }
+}else
+if (distanceClick <= 34 && distanceFromPlayer <= 60 && (checkIfItems("pointed_stick", 1))) {
+  if (enemy.type == "bat" || enemy.type == "wasp") {
+    
+    return false;
+  } else {
+    showTextInCanvas("you don't have any weapon")
+  }
+}else
 if (distanceClick <= 34 && distanceFromPlayer <= 64 && ( checkIfItems("pointed_stick", 1) || checkIfItems("long_spear", 1))) {
   if (enemy.type == "bunny") {
     if(Math.random()<0.6){
@@ -2078,7 +2099,7 @@ if (distanceClick <= 34 && distanceFromPlayer <= 64 && ( checkIfItems("pointed_s
   } else {
     showTextInCanvas("you don't have any weapon")
   }
-        }else if (distanceClick <= 34 && distanceFromPlayer <= 70 && (checkIfItems("long_spear", 1) || checkIfItems("copper_spear", 1))) {
+}else if (distanceClick <= 34 && distanceFromPlayer <= 70 && (checkIfItems("long_spear", 1) || checkIfItems("copper_spear", 1))) {
           
   return false;
 }else if (distanceClick <= 34 && distanceFromPlayer <= 95 && (checkIfItems("iron_spear", 1))) {
@@ -2350,29 +2371,30 @@ removeTree(x, y);
 
   if (checkBlockAtPosition(x, y, "grass") && checkEmptySlots(0) && checkIfItems("stoneshovel", 1)) {
   // Przeszukujemy otaczające bloki w promieniu 64px i zamieniamy "fiber" na "ignited_fiber"
-  removeBlockAtPosition(x, y, "grass");
-  addItem("grasslayer", 1);
+  
   if(Math.random()<0.2){
-  buildBlockAtPositionBefore(x, y, "clayblock");
-  }else if (Math.random() < 0.10) {
-    buildBlockAtPositionBefore(x, y, "magnetite")
+  buildBlockAtPositionBefore2(x, y, "clayblock");
+  }else if (Math.random() < 0.08) {
+    buildBlockAtPositionBefore2(x, y, "magnetite")
    
   
-}else if (Math.random() < 0.05) {
-  buildBlockAtPositionBefore(x, y, "chalcopyrite")
+}else if (Math.random() < 0.02) {
+  buildBlockAtPositionBefore2(x, y, "chalcopyrite")
    
   
-}else if (Math.random() < 0.30) {
-  buildBlockAtPositionBefore(x, y, "stones")
+}else if (Math.random() < 0.09) {
+  buildBlockAtPositionBefore2(x, y, "stones")
   
   
-}else if (Math.random() < 0.20) {
-  buildBlockAtPositionBefore(x, y, "bigrock")
+}else if (Math.random() < 0.09) {
+  buildBlockAtPositionBefore2(x, y, "bigrock")
   
   
-}else{
-    
+}else{ if (Math.random() < 0.5){
+    buildBlockAtPositionBefore2(x, y, "grasslayer");}
 }
+removeBlockAtPosition(x, y, "grass");
+addItem("grasslayer", 1);
 setTimeout(function (){
 buildBlockAtPositionBefore2(x, y, "dirt");
 },100)
