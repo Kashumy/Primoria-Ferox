@@ -142,7 +142,7 @@ nightpower=0
 </div>
 
 <script>
-var yourItems = ["furnace","sapling"];  // Ekwipunek
+var yourItems = [];  // Ekwipunek
 var playerX=0
 var playerY=0
 const blockSize = 32;
@@ -1309,6 +1309,7 @@ buildBlockAtPosition(globalX - offsetX, globalY - offsetY, 'furnace');
   });
 }
 var by5=0
+
 function update() {
     const startTime = performance.now(); // Get the current time at the start of the update
     updateDayNightCycle();
