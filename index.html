@@ -1,4 +1,4 @@
-<!--
+ <!--
 
 Primoria
 BETA 1.1
@@ -521,6 +521,7 @@ const textureSources = {
   sapphireblock: './sapphireblock.png',
   rubyblock: './rubyblock.png',
   sapphirefloor: './sapphirefloor.png',
+  emeraldfloor: './emeraldfloor.png',
   rubyfloor: './rubyfloor.png',
   cinnabar: './cinnabar.png',
   mercury: './mercury.png',
@@ -2998,7 +2999,7 @@ if (checkBlockAtPosition(x, y, "honey_mushrooms") && checkEmptySlots(0)) {
     // Sprawdzenie, jaki blok został kliknięty
     Object.keys(allItems).forEach(itemName => {
   if (checkBlockAtPosition(x, y, itemName) && checkEmptySlots(0)) {
-    if (itemName !== "blackberry-fruit" && itemName !== "briar-fruit" && itemName !== "grasslayer" && itemName !== "clayblock" && itemName !== "clayblock1" && itemName !== "sandblock2" && itemName !== "fireplow" && itemName !== "fireroll" && itemName !== "furnace"&& itemName !== "magnetite"&& itemName !== "thistleroot"&& itemName !== "blackberry-fruit"&& itemName !== "cooked_thistleroot"&& itemName !== "cooked_bunnmeat"&& itemName !== "cooked_sharkmeat"&& itemName !== "briar-fruit"&& itemName !== "kite"&& itemName !== "rock"&& itemName !== "cave_wall"&& itemName !== "cavewall") {
+    if (itemName !== "blackberry-fruit" && itemName !== "briar-fruit" && itemName !== "grasslayer" && itemName !== "clayblock" && itemName !== "clayblock1" && itemName !== "sandblock2" && itemName !== "fireplow" && itemName !== "fireroll" && itemName !== "furnace"&& itemName !== "magnetite"&& itemName !== "blackberry-fruit"&& itemName !== "cooked_thistleroot"&& itemName !== "cooked_bunnmeat"&& itemName !== "cooked_sharkmeat"&& itemName !== "briar-fruit"&& itemName !== "kite"&& itemName !== "rock"&& itemName !== "cave_wall"&& itemName !== "cavewall") {
       addItem(itemName, 1); // Dodajemy przedmiot o tej samej nazwie, co nazwa w allItems
       removeBlockAtPosition(x, y, itemName); // Usuwamy blok po kliknięciu
 
@@ -3012,9 +3013,8 @@ if (checkBlockAtPosition(x, y, "stonewithgypsum") && checkIfItems("pickaxe",1)&&
   addItem("gypsum", 1);
   removeBlockAtPosition(x, y, "stonewithgypsum")
   if (Math.random() < 0.02) {
-    showTextInCanvas("your pickaxe breaked auto save \n(ONLY saved your ITEMS) ...")
-    localStorage.setItem('slots', slots);
-    localStorage.setItem('youritems', JSON.stringify(yourItems));
+    showTextInCanvas("your pickaxe breaked ")
+    
 
     deleteItems("pickaxe", 1)
   }
@@ -3653,7 +3653,27 @@ image-rendering:pixelated;
 .hover:hover{
   color:#3DFF00
 }
-
+#advanced{
+  position: fixed;
+  flex-direction: column;
+  z-index: 99999;
+  width:100vw;
+  height:100vh;
+  background: #141414;
+  display: none;
+}
+#advanced button {
+  color: #000000;
+  width:50%;
+  background: #505050;
+  outline: none;
+}#advanced textarea {
+  color: #000000;
+  background: #505050;
+  outline: none;
+  width:50%;
+  
+}
     </style>
 
     <div class="inventory-container"  id="inventory">
@@ -3661,7 +3681,7 @@ image-rendering:pixelated;
       
       <div onclick="loadGameState();"  style="position:absolute; top:90px; right:0 ;z-index: 999; background:#666666;"class="hover">load game</div>
       <div onclick="toggleAllRecipes()"  style="position:absolute; top:120px; right:0 ; z-index: 999; background:#666666;"class="hover">Show all</div>
-      
+     <!-- <div onclick="toggleadvanced()"  style="position:absolute; top:160px; right:0 ; z-index: 999; background:#666666;"class="hover">advanced </div>-->
         <button class="close-button" onclick="closeInventory()">Close</button>
 
         <div class="crafting-recipes" id="crafting">
@@ -3672,8 +3692,108 @@ image-rendering:pixelated;
             <!-- Inventory slots will be generated here -->
         </div>
     </div>
+<div id="advanced">
+  <div onclick="toggleadvanced()"  style="position:absolute; top:20px; right:20px; z-index: 999; background:#666666;"class="hover">close </div>
+      <h1>clip board saving ( experimental ) </h1>
+    <button id="saveButton">Zapisz Stan Gry</button>
+    <textarea id="saveOutput" readonly placeholder="Zakodowany stan gry..."></textarea>
+    <br>
+    <button id="copyButton">Kopiuj do Schowka</button>
+    <br>
+    <button id="loadButton">Wczytaj Stan Gry</button>
+    <button id="pasteButton">Wklej !</button>
+    <textarea id="loadInput" placeholder="Wklej zakodowany stan gry..."></textarea>
 
     <script>
+      
+
+      // Funkcja do kodowania i dekodowania przy użyciu XOR
+      function xorEncodeDecode(input, key) {
+        return Array.from(input).map((char) => String.fromCharCode(char.charCodeAt(0) ^ key)).join('');
+      }
+
+      // Funkcja zapisująca stan gry do zakodowanego formatu
+      function saveGameState2() {
+        const gameState = {
+          playerX: offsetX,
+          playerY: offsetY,
+          rainingcycle: isRaining,
+          nightcycle: nightpower,
+          slots: slots,
+          cannotmove: cannotmove,
+          Hp: currentHP,
+          St: currentStamina,
+          InCave: generateCave,
+          youritems: yourItems,
+          chunks: generateCave !== 1 ? chunks : overworldChunks,
+          cave: generateCave === 1 ? chunks : caveChunks
+        };
+
+        // Kodowanie stanu gry
+        const encodedData = xorEncodeDecode(JSON.stringify(gameState), 3);
+        document.getElementById('saveOutput').value = encodedData;
+      }
+
+      // Funkcja wczytująca stan gry z zakodowanego formatu
+      function loadGameState2(encodedData) {
+        // Dekodowanie stanu gry
+        const decodedData = xorEncodeDecode(encodedData, 3);
+        const gameState = JSON.parse(decodedData);
+
+        // Ustawienie zmiennych stanu gry
+        offsetX = gameState.playerX;
+        offsetY = gameState.playerY;
+        isRaining = gameState.rainingcycle;
+        nightpower = gameState.nightcycle;
+        slots = gameState.slots;
+        cannotmove = gameState.cannotmove;
+        currentHP = gameState.Hp;
+        currentStamina = gameState.St;
+        generateCave = gameState.InCave;
+        yourItems = gameState.youritems;
+        chunks = gameState.chunks;
+        caveChunks = gameState.cave;
+
+        // Możesz dodać dodatkową logikę do aktualizacji stanu gry w UI
+        console.log("Stan gry został wczytany:", gameState);
+      }
+
+      // Obsługa zdarzeń przycisków
+      document.getElementById('saveButton').onclick = saveGameState2;
+
+      document.getElementById('copyButton').onclick = function() {
+        const outputText = document.getElementById('saveOutput').value;
+        navigator.clipboard.writeText(outputText).then(() => {
+          alert("Zakodowany stan gry skopiowany do schowka!");
+        }).catch(err => {
+          console.error("Błąd podczas kopiowania do schowka:", err);
+        });
+      };
+
+      document.getElementById('loadButton').onclick = function() {
+        const inputText = document.getElementById('loadInput').value;
+        if (inputText) {
+          try {
+            loadGameState2(inputText);
+            alert("Stan gry został pomyślnie wczytany!");
+          } catch (e) {
+            alert("Błąd przy wczytywaniu stanu gry: " + e.message);
+          }
+        } else {
+          alert("Proszę wprowadzić zakodowany stan gry.");
+        }
+      };
+    </script>
+</div>
+    <script>
+    function toggleadvanced(){
+      let docv = document.getElementById("advanced")
+      if(docv.style.display=="none"){
+        docv.style.display="flex"
+      }else{
+        docv.style.display="none"
+      }
+    }
         var slots = 8;  // Max slots
         var allItems = { // Definicja tekstur przedmiotów
         trout: './trout.png',
