@@ -1,7 +1,23 @@
-# Primoria-Ferox
-current version: beta 1.2
-copyright ©    : 2024
+# primoria ferox
+last version: beta 1.2
 
-page           : https://kashumy.github.io/Primoria-Ferox/
+page   &nbsp;&nbsp;&nbsp;&nbsp;        :  b1.1 pre b1.2 <br>
+https://kashumy.github.io/Primoria-Ferox/ <br>
+apk  &nbsp; &nbsp;&nbsp;&nbsp;  &nbsp;       : b1.2 full <br>
+https://github.com/Kashumy/Primoria-Ferox/raw/refs/heads/main/primoria%20ferox.apk
+<br> <br><br>
+## Currently Working On
 
-currently working on .apk and cross platform file system 
+&nbsp;&nbsp;&nbsp;`
+cross platform file system 
+`
+<br> 
+&nbsp;&nbsp;&nbsp;`
+better webview apk
+`
+<br> 
+&nbsp;&nbsp;&nbsp;`
+main menu and new content 
+`
+<br> <br>
+' copyright ©    : 2024 '
