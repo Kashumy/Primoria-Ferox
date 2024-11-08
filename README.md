@@ -1,5 +1,5 @@
 # primoria ferox
-last version: v 5
+last version: combat update 
 - added creative mode
 - slots name 
 
@@ -11,6 +11,10 @@ https://github.com/Kashumy/Primoria-Ferox/raw/refs/heads/main/primoria%20ferox.a
 apk  &nbsp; &nbsp;&nbsp;&nbsp;  &nbsp;       : v 5  <br>
 https://github.com/Kashumy/Primoria-Ferox/raw/refs/heads/main/primoria%20ferox%201.apk
 <br> <br><br>
+apk  &nbsp; &nbsp;&nbsp;&nbsp;  &nbsp;       : Combat Update  <br>
+https://github.com/Kashumy/
+https://github.com/Kashumy/Primoria-Ferox/raw/refs/heads/main/primoria%201.3.apk
+
 ## Currently Working On
 
 &nbsp;&nbsp;&nbsp;`
